@@ -1,20 +1,20 @@
 <template>
   <div id="app">
-    <landing-page></landing-page>
+    <TodoList></TodoList>
   </div>
 </template>
 
 <script>
-  import LandingPage from '@/components/LandingPage'
+import TodoList from "@/components/TodoList";
 
-  export default {
-    name: 'markdowntodolist',
-    components: {
-      LandingPage
-    }
+export default {
+  name: "markdowntodolist",
+  components: {
+    TodoList
   }
+};
 </script>
 
 <style>
-  /* CSS */
+/* CSS */
 </style>
