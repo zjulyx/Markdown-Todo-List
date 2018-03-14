@@ -1,12 +1,22 @@
 <template>
     <div>
-        <li v-for="todo in filteredTodos" class="todo" :key="todo.id" :class="{ completed: todo.completed, editing: todo == editedTodo }">
-            <!-- <el-rate v-model="todo.completed" :max="4">
-            </el-rate> -->
-            <el-checkbox v-model="todo.completed"></el-checkbox>
-            <el-input v-model="todo.title" v-todo-focus="todo == editedTodo" @blur="doneEdit(todo)" @keyup.enter="doneEdit(todo)" @keyup.esc="cancelEdit(todo)">
-        </li>
-        <el-input placeholder="Add new Todo" v-model="newTodo" @keyup.enter="addTodo(newTodo)" clearable>
+        <el-row type="flex" justify="space-between" v-for="todo in filteredTodos" class="todo" :key="todo.id">
+            <el-col :span="18">
+                <el-input v-model="todo.title" @blur="doneEdit(todo)" @change="doneEdit(todo)" @keyup.esc="cancelEdit(todo)">
+                    <el-checkbox slot="prepend" :indeterminate="todo.progress!==0&&todo.progress!==MAXPROGRESS" :checked="todo.progress===MAXPROGRESS" @change="val=>{todo.progress = (val ? MAXPROGRESS : 0);}"></el-checkbox>
+                    <el-button slot="append" type="danger" icon="el-icon-delete" @click="removeTodo(todo)"></el-button>
+                    <!-- <el-rate slot="append" v-model="todo.progress" :max="4" show-score score-template="{value}*25%"></el-rate> -->
+                    <!-- <el-slider slot="append" v-model="todo.progress" :step="25" show-stops>
+                </el-slider> -->
+                </el-input>
+            </el-col>
+            <el-col :offset="1" :span="3">
+                <el-rate v-model="todo.progress" :max="MAXPROGRESS"></el-rate>
+                <!-- <el-slider v-model="todo.progress" :step="25" show-stops>
+                </el-slider> -->
+            </el-col>
+        </el-row>
+        <el-input placeholder="Add new Todo" v-model="newTodo" @change="addTodo(newTodo)" clearable>
         </el-input>
     </div>
 </template>
@@ -17,6 +27,7 @@
 // and hash-based routing in ~120 effective lines of JavaScript.
 
 // localStorage persistence
+const MAXPROGRESS = 4
 var STORAGE_KEY = 'todos-vuejs-2.0'
 var todoStorage = {
     fetch: function () {
@@ -39,33 +50,15 @@ var filters = {
     },
     active: function (todos) {
         return todos.filter(function (todo) {
-            return !todo.completed
+            return todo.progress !== MAXPROGRESS
         })
     },
     completed: function (todos) {
         return todos.filter(function (todo) {
-            return todo.completed
+            return todo.progress === MAXPROGRESS
         })
     }
 }
-
-
-// // handle routing
-// function onHashChange() {
-//     var visibility = window.location.hash.replace(/#\/?/, '')
-//     if (filters[visibility]) {
-//         app.visibility = visibility
-//     } else {
-//         window.location.hash = ''
-//         app.visibility = 'all'
-//     }
-// }
-
-// window.addEventListener('hashchange', onHashChange)
-// onHashChange()
-
-// // mount
-// app.$mount('.todoapp')
 
 export default {
     name: "todo-list",
@@ -75,7 +68,8 @@ export default {
             todos: todoStorage.fetch(),
             newTodo: '',
             editedTodo: null,
-            visibility: 'all'
+            visibility: 'all',
+            MAXPROGRESS: MAXPROGRESS
         };
     },
 
@@ -121,13 +115,15 @@ export default {
     methods: {
         addTodo: function () {
             var value = this.newTodo && this.newTodo.trim()
+            console.log(`newTodo ${value}`)
             if (!value) {
                 return
             }
             this.todos.push({
                 id: todoStorage.uid++,
                 title: value,
-                completed: false
+                // completed: false,
+                progress: 0
             })
             this.newTodo = ''
         },
