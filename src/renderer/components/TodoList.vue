@@ -1,20 +1,40 @@
 <template>
     <div>
-        <el-row type="flex" justify="space-between" v-for="todo in filteredTodos" class="todo" :key="todo.id">
-            <el-col :span="18">
-                <el-input v-model="todo.title" @blur="doneEdit(todo)" @change="doneEdit(todo)" @keyup.esc="cancelEdit(todo)">
-                    <el-checkbox slot="prepend" :indeterminate="todo.progress!==0&&todo.progress!==MAXPROGRESS" :checked="todo.progress===MAXPROGRESS" @change="val=>{todo.progress = (val ? MAXPROGRESS : 0);}"></el-checkbox>
-                    <el-button slot="append" type="danger" icon="el-icon-delete" @click="removeTodo(todo)"></el-button>
-                    <!-- <el-rate slot="append" v-model="todo.progress" :max="4" show-score score-template="{value}*25%"></el-rate> -->
-                    <!-- <el-slider slot="append" v-model="todo.progress" :step="25" show-stops>
-                </el-slider> -->
+        <el-row type="flex" justify="space-between" v-for="todo in filteredTodos" class="el-margin-bottom" :key="todo.id">
+            <el-col>
+                <el-input v-model="todo.title" @blur="doneEdit(todo)" @change="doneEdit(todo)" @keyup.esc="cancelEdit(todo)" size="small">
+                    <el-checkbox slot="prepend" :indeterminate="todo.progress!==0&&todo.progress!==MAXPROGRESS" v-model="todo.completed" @change="val=>{todo.progress = (val ? MAXPROGRESS : 0)}"></el-checkbox>
+                    <el-container slot="append">
+
+                        <!-- <el-row> -->
+                        <!-- <el-col :span="12"> -->
+                        <el-tooltip :content="showProgress(todo.progress)" placement="top">
+                            <el-rate v-model="todo.progress" :max="MAXPROGRESS" @change="val=>{todo.completed = (val===MAXPROGRESS? true : false)}"></el-rate>
+                        </el-tooltip>
+                        <!-- </el-col>
+                            <el-col :span="6"> -->
+                        <!-- <el-tag>{{showProgress(todo.progress)}}</el-tag> -->
+                        <!-- </el-col>
+                            <el-col :span="6"> -->
+
+                        <!-- </el-col> -->
+                        <!-- </el-row> -->
+                    </el-container>
+
                 </el-input>
             </el-col>
-            <el-col :offset="1" :span="3">
-                <el-rate v-model="todo.progress" :max="MAXPROGRESS"></el-rate>
-                <!-- <el-slider v-model="todo.progress" :step="25" show-stops>
-                </el-slider> -->
+            <el-button type="danger" icon="el-icon-delete" @click="removeTodo(todo)" size="small"></el-button>
+            <!-- <el-col :span="4">
+                <el-row>
+                    <el-col :span="12">
+                        <el-rate v-model="todo.progress" :max="MAXPROGRESS" @change="val=>{todo.completed = (val===MAXPROGRESS? true : false)}"></el-rate>
+                    </el-col>
+
+                </el-row>
             </el-col>
+            <el-col :span="1">
+                <el-tag>{{`${todo.progress*25}%`}}</el-tag>
+            </el-col> -->
         </el-row>
         <el-input placeholder="Add new Todo" v-model="newTodo" @change="addTodo(newTodo)" clearable>
         </el-input>
@@ -113,6 +133,9 @@ export default {
     // methods that implement data logic.
     // note there's no DOM manipulation here at all.
     methods: {
+        showProgress(val) {
+            return `${val * 25}%`
+        },
         addTodo: function () {
             var value = this.newTodo && this.newTodo.trim()
             console.log(`newTodo ${value}`)
@@ -122,7 +145,7 @@ export default {
             this.todos.push({
                 id: todoStorage.uid++,
                 title: value,
-                // completed: false,
+                completed: false,
                 progress: 0
             })
             this.newTodo = ''
@@ -170,3 +193,9 @@ export default {
     }
 };
 </script>
+
+<style>
+.el-margin-bottom {
+  margin-bottom: 10px;
+}
+</style>
