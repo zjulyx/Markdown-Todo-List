@@ -5,37 +5,31 @@
                 <el-input v-model="todo.title" @blur="doneEdit(todo)" @change="doneEdit(todo)" @keyup.esc="cancelEdit(todo)" size="small">
                     <el-checkbox slot="prepend" :indeterminate="todo.progress!==0&&todo.progress!==MAXPROGRESS" v-model="todo.completed" @change="val=>{todo.progress = (val ? MAXPROGRESS : 0)}"></el-checkbox>
                     <el-container slot="append">
-
-                        <!-- <el-row> -->
-                        <!-- <el-col :span="12"> -->
                         <el-tooltip :content="showProgress(todo.progress)" placement="top">
                             <el-rate v-model="todo.progress" :max="MAXPROGRESS" @change="val=>{todo.completed = (val===MAXPROGRESS? true : false)}"></el-rate>
                         </el-tooltip>
-                        <!-- </el-col>
-                            <el-col :span="6"> -->
-                        <!-- <el-tag>{{showProgress(todo.progress)}}</el-tag> -->
-                        <!-- </el-col>
-                            <el-col :span="6"> -->
-
-                        <!-- </el-col> -->
-                        <!-- </el-row> -->
                     </el-container>
-
                 </el-input>
             </el-col>
             <el-button type="danger" icon="el-icon-delete" @click="removeTodo(todo)" size="small"></el-button>
-            <!-- <el-col :span="4">
-                <el-row>
-                    <el-col :span="12">
-                        <el-rate v-model="todo.progress" :max="MAXPROGRESS" @change="val=>{todo.completed = (val===MAXPROGRESS? true : false)}"></el-rate>
-                    </el-col>
-
-                </el-row>
-            </el-col>
-            <el-col :span="1">
-                <el-tag>{{`${todo.progress*25}%`}}</el-tag>
-            </el-col> -->
         </el-row>
+
+        <el-tree :data="data5" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange">
+            <span slot-scope="{ node, data }">
+                <span>{{ node.label }}</span>
+                <el-input v-model="node.label" @blur="doneEdit(node)" @change="doneEdit(node)" @keyup.esc="cancelEdit(node)" size="mini">
+                    <el-container slot="append">
+                        <el-tooltip :content="showProgress(data.progress)" placement="top">
+                            <el-rate size="mini" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{handleProgress(val,data,node)}"></el-rate>
+                        </el-tooltip>
+                    </el-container>
+                </el-input>
+                <span>
+                    <el-button type="primary" icon="el-icon-circle-plus" @click="() => addTodo(data)" size="mini"></el-button>
+                    <el-button type="danger" icon="el-icon-delete" @click="() => removeTodo(node, data)" size="mini"></el-button>
+                </span>
+            </span>
+        </el-tree>
         <el-input placeholder="Add new Todo" v-model="newTodo" @change="addTodo(newTodo)" clearable>
         </el-input>
     </div>
@@ -80,11 +74,72 @@ var filters = {
     }
 }
 
+let updateChildrenCheckStatus = function (node, newProgress) {
+    node.data.progress = newProgress
+    // newProgress cannot be 0
+    if (newProgress === MAXPROGRESS) {
+        node.checked = true
+    } else {
+        node.indeterminate = true
+    }
+    for (let child of node.childNodes) {
+        updateChildrenCheckStatus(child, newProgress)
+    }
+}
+
+let updateParentCheckStatus = function (node, newProgress) {
+    node.data.progress = newProgress
+    // newProgress cannot be 0
+    if (newProgress === MAXPROGRESS) {
+        node.checked = true
+    } else {
+        node.indeterminate = true
+    }
+    for (let child of node.childNodes) {
+        updateParentCheckStatus(child, newProgress)
+    }
+}
+
 export default {
     name: "todo-list",
     data() {
         return {
             value4: null,
+            data5: [{
+                id: 1,
+                label: '一级 1',
+                children: [{
+                    id: 4,
+                    label: '二级 1-1',
+                    children: [{
+                        id: 9,
+                        label: '三级 1-1-1'
+                    }, {
+                        id: 10,
+                        label: '三级 1-1-2'
+                    }]
+                }]
+            }, {
+                id: 2,
+                label: '一级 2',
+                children: [{
+                    id: 5,
+                    label: '二级 2-1'
+                }, {
+                    id: 6,
+                    label: '二级 2-2'
+                }]
+            }, {
+                id: 3,
+                label: '一级 3',
+                children: [{
+                    id: 7,
+                    label: '二级 3-1'
+                }, {
+                    id: 8,
+                    label: '二级 3-2'
+                }]
+            }],
             todos: todoStorage.fetch(),
             newTodo: '',
             editedTodo: null,
@@ -133,6 +188,33 @@ export default {
     // methods that implement data logic.
     // note there's no DOM manipulation here at all.
     methods: {
+        handleCheckChange(data, checked, subchecked) {
+            console.log(data)
+            console.log(checked)
+            console.log(subchecked)
+            let node = this.$refs.tree.getNode(data)
+            if (checked) {
+                data.progress = MAXPROGRESS
+            } else if (!node.indeterminate) {
+                data.progress = 0
+            }
+        },
+        handleProgress(val, data, node) {
+            console.log(val)
+            console.log(data)
+            console.log(node)
+            // update children
+            // updateChildrenCheckStatus(node, val)
+            // // val cannot be 0
+            if (val === MAXPROGRESS) {
+                this.$refs.tree.setChecked(data, true, true)
+            } else if (val !== 0) {
+                // don't update children, will mess up!
+                updateChildrenCheckStatus(node, val)
+            }
+            // todo: update parent
+            updateParentCheckStatus(node, val)
+        },
         showProgress(val) {
             return `${val * 25}%`
         },
