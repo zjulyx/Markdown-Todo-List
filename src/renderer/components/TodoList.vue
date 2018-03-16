@@ -20,7 +20,7 @@
                 <el-input v-model="node.label" @blur="doneEdit(node)" @change="doneEdit(node)" @keyup.esc="cancelEdit(node)" size="mini">
                     <el-container slot="append">
                         <el-tooltip :content="showProgress(data.progress)" placement="top">
-                            <el-rate size="mini" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{handleProgress(val,data,node)}"></el-rate>
+                            <el-rate size="mini" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{handleProgress(val,data,node)}" :disabled="!node.isLeaf" disabled-void-color="#C6D1DE" disabled-void-icon-class="el-icon-star-off"></el-rate>
                         </el-tooltip>
                     </el-container>
                 </el-input>
@@ -74,30 +74,40 @@ var filters = {
     }
 }
 
-let updateChildrenCheckStatus = function (node, newProgress) {
-    node.data.progress = newProgress
-    // newProgress cannot be 0
-    if (newProgress === MAXPROGRESS) {
-        node.checked = true
-    } else {
-        node.indeterminate = true
-    }
-    for (let child of node.childNodes) {
-        updateChildrenCheckStatus(child, newProgress)
-    }
-}
+// let updateChildrenCheckStatus = function (node, newProgress) {
+//     node.data.progress = newProgress
+//     // newProgress cannot be 0
+//     if (newProgress === MAXPROGRESS) {
+//         node.checked = true
+//     } else {
+//         node.indeterminate = true
+//     }
+//     for (let child of node.childNodes) {
+//         updateChildrenCheckStatus(child, newProgress)
+//     }
+// }
 
 let updateParentCheckStatus = function (node, newProgress) {
     node.data.progress = newProgress
-    // newProgress cannot be 0
     if (newProgress === MAXPROGRESS) {
         node.checked = true
+        node.indeterminate = false
+    } else if (newProgress === 0) {
+        node.checked = false
+        node.indeterminate = false
     } else {
         node.indeterminate = true
     }
-    for (let child of node.childNodes) {
-        updateParentCheckStatus(child, newProgress)
+    let parent = node.parent
+    if (!parent) {
+        return
     }
+    let parentNewProgress = 0
+    for (let sibling of parent.childNodes) {
+        parentNewProgress += sibling.data.progress || 0
+    }
+    parentNewProgress = parentNewProgress / parent.childNodes.length
+    updateParentCheckStatus(parent, parentNewProgress)
 }
 
 export default {
@@ -193,10 +203,14 @@ export default {
             console.log(checked)
             console.log(subchecked)
             let node = this.$refs.tree.getNode(data)
+            let originProgress = data.progress
             if (checked) {
                 data.progress = MAXPROGRESS
             } else if (!node.indeterminate) {
                 data.progress = 0
+            }
+            if (originProgress !== data.progress) {
+                this.handleProgress(data.progress, data, node)
             }
         },
         handleProgress(val, data, node) {
@@ -206,12 +220,9 @@ export default {
             // update children
             // updateChildrenCheckStatus(node, val)
             // // val cannot be 0
-            if (val === MAXPROGRESS) {
-                this.$refs.tree.setChecked(data, true, true)
-            } else if (val !== 0) {
-                // don't update children, will mess up!
-                updateChildrenCheckStatus(node, val)
-            }
+            // if (val === MAXPROGRESS) {
+            //     this.$refs.tree.setChecked(data, true, true)
+            // }
             // todo: update parent
             updateParentCheckStatus(node, val)
         },
