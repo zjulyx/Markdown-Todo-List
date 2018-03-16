@@ -1,22 +1,9 @@
 <template>
     <div>
-        <!-- <el-row type="flex" justify="space-between" v-for="todo in filteredTodos" class="el-margin-bottom" :key="todo.id">
-            <el-col>
-                <el-input v-model="todo.title" @blur="doneEdit(todo)" @change="doneEdit(todo)" @keyup.esc="cancelEdit(todo)" size="small">
-                    <el-checkbox slot="prepend" :indeterminate="todo.progress!==0&&todo.progress!==MAXPROGRESS" v-model="todo.completed" @change="val=>{todo.progress = (val ? MAXPROGRESS : 0)}"></el-checkbox>
-                    <el-container slot="append">
-                        <el-tooltip :content="showProgress(todo.progress)" placement="top">
-                            <el-rate v-model="todo.progress" :max="MAXPROGRESS" @change="val=>{todo.completed = (val===MAXPROGRESS? true : false)}"></el-rate>
-                        </el-tooltip>
-                    </el-container>
-                </el-input>
-            </el-col>
-            <el-button type="danger" icon="el-icon-delete" @click="removeTodo(todo)" size="small"></el-button>
-        </el-row> -->
         <el-container>
             <el-header style="text-align: center;">
                 <el-tag type="danger" hit>
-                    <i :class="el-icon-edit"></i>
+                    <i class="el-icon-edit"></i>
                     TodoList
                 </el-tag>
             </el-header>
@@ -42,11 +29,11 @@
                 </el-input>
             </el-footer>
         </el-container>
-
     </div>
 </template>
 
 <script>
+import * as markdownParser from "../../utils/markdownParser";
 
 // Full spec-compliant TodoMVC with localStorage persistence
 // and hash-based routing in ~120 effective lines of JavaScript.
@@ -209,6 +196,7 @@ export default {
         this.$nextTick(function () {
             // Code that will run only after the
             // entire view has been rendered
+            markdownParser.convertMarkDownToObj('test.md', this.data5)
             updateCheckStatus(this.$refs.tree.getNode(this.data5[0]))
         });
     },
