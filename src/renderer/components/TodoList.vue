@@ -1,6 +1,6 @@
 <template>
     <div>
-        <el-row type="flex" justify="space-between" v-for="todo in filteredTodos" class="el-margin-bottom" :key="todo.id">
+        <!-- <el-row type="flex" justify="space-between" v-for="todo in filteredTodos" class="el-margin-bottom" :key="todo.id">
             <el-col>
                 <el-input v-model="todo.title" @blur="doneEdit(todo)" @change="doneEdit(todo)" @keyup.esc="cancelEdit(todo)" size="small">
                     <el-checkbox slot="prepend" :indeterminate="todo.progress!==0&&todo.progress!==MAXPROGRESS" v-model="todo.completed" @change="val=>{todo.progress = (val ? MAXPROGRESS : 0)}"></el-checkbox>
@@ -12,26 +12,37 @@
                 </el-input>
             </el-col>
             <el-button type="danger" icon="el-icon-delete" @click="removeTodo(todo)" size="small"></el-button>
-        </el-row>
-
-        <el-tree :data="data5" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange">
-            <span slot-scope="{ node, data }">
-                <span>{{ node.label }}</span>
-                <el-input v-model="node.label" @blur="doneEdit(node)" @change="doneEdit(node)" @keyup.esc="cancelEdit(node)" size="mini">
-                    <el-container slot="append">
-                        <el-tooltip :content="showProgress(data.progress)" placement="top">
-                            <el-rate size="mini" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{handleProgress(val,data,node)}" :disabled="!node.isLeaf" disabled-void-color="#C6D1DE" disabled-void-icon-class="el-icon-star-off"></el-rate>
-                        </el-tooltip>
-                    </el-container>
+        </el-row> -->
+        <el-container>
+            <el-header style="text-align: center;">
+                <el-tag type="danger" hit>
+                    <i :class="el-icon-edit"></i>
+                    TodoList
+                </el-tag>
+            </el-header>
+            <el-main style="width: 100%">
+                <el-tree :data="data5" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" style="width: 100%">
+                    <span slot-scope="{ node, data }">
+                        <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" @keyup.esc.native="cancelEdit(node)" size="mini">
+                            <el-container slot="append">
+                                <el-tooltip :content="showProgress(data.progress)" placement="top">
+                                    <el-rate size="mini" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{updateProgress(val,node)}" :disabled="!node.isLeaf" disabled-void-color="#C6D1DE" disabled-void-icon-class="el-icon-star-off"></el-rate>
+                                </el-tooltip>
+                            </el-container>
+                        </el-input>
+                        <span>
+                            <el-button type="primary" icon="el-icon-circle-plus" @click="() => addTodo(node)" size="mini"></el-button>
+                            <el-button type="danger" icon="el-icon-delete" @click="() => removeTodo(node, data)" size="mini"></el-button>
+                        </span>
+                    </span>
+                </el-tree>
+            </el-main>
+            <el-footer>
+                <el-input placeholder="Add new Todo" v-model="newTodo" @change="addRootTodo(newTodo)" clearable>
                 </el-input>
-                <span>
-                    <el-button type="primary" icon="el-icon-circle-plus" @click="() => addTodo(data)" size="mini"></el-button>
-                    <el-button type="danger" icon="el-icon-delete" @click="() => removeTodo(node, data)" size="mini"></el-button>
-                </span>
-            </span>
-        </el-tree>
-        <el-input placeholder="Add new Todo" v-model="newTodo" @change="addTodo(newTodo)" clearable>
-        </el-input>
+            </el-footer>
+        </el-container>
+
     </div>
 </template>
 
@@ -87,27 +98,53 @@ var filters = {
 //     }
 // }
 
-let updateParentCheckStatus = function (node, newProgress) {
-    node.data.progress = newProgress
-    if (newProgress === MAXPROGRESS) {
-        node.checked = true
-        node.indeterminate = false
-    } else if (newProgress === 0) {
-        node.checked = false
-        node.indeterminate = false
-    } else {
-        node.indeterminate = true
+let id = 1000
+
+// let updateParentCheckStatus = function (node, newProgress) {
+//     node.data.progress = newProgress
+//     if (newProgress === MAXPROGRESS) {
+//         node.checked = true
+//         node.indeterminate = false
+//     } else if (newProgress === 0) {
+//         node.checked = false
+//         node.indeterminate = false
+//     } else {
+//         node.indeterminate = true
+//     }
+//     let parent = node.parent
+//     if (!parent) {
+//         return
+//     }
+//     let progressSum = 0
+//     for (let sibling of parent.childNodes) {
+//         progressSum += sibling.data.progress || 0
+//     }
+//     progressSum = progressSum / parent.childNodes.length
+//     updateParentCheckStatus(parent, progressSum)
+// }
+
+let calNodeProgress = function (node) {
+    let progressSum = 0
+    for (let child of node.childNodes) {
+        progressSum += child.data.progress
     }
-    let parent = node.parent
-    if (!parent) {
+    let childCount = node.childNodes.length
+    return (childCount === 0) ? progressSum : progressSum / childCount
+}
+
+let updateCheckStatus = function (node) {
+    if (!node) {
         return
     }
-    let parentNewProgress = 0
-    for (let sibling of parent.childNodes) {
-        parentNewProgress += sibling.data.progress || 0
+    if (node.data.progress === MAXPROGRESS) {
+        node.checked = true
+        node.indeterminate = false
+    } else if (node.data.progress !== 0) {
+        node.indeterminate = true
     }
-    parentNewProgress = parentNewProgress / parent.childNodes.length
-    updateParentCheckStatus(parent, parentNewProgress)
+    for (let child of node.childNodes) {
+        updateCheckStatus(child)
+    }
 }
 
 export default {
@@ -115,42 +152,42 @@ export default {
     data() {
         return {
             value4: null,
-            data5: [{
-                id: 1,
-                label: '一级 1',
-                children: [{
-                    id: 4,
-                    label: '二级 1-1',
-                    children: [{
-                        id: 9,
-                        label: '三级 1-1-1'
-                    }, {
-                        id: 10,
-                        label: '三级 1-1-2'
-                    }]
-                }]
-            }, {
-                id: 2,
-                label: '一级 2',
-                children: [{
-                    id: 5,
-                    label: '二级 2-1'
-                }, {
-                    id: 6,
-                    label: '二级 2-2'
-                }]
-            }, {
-                id: 3,
-                label: '一级 3',
-                children: [{
-                    id: 7,
-                    label: '二级 3-1'
-                }, {
-                    id: 8,
-                    label: '二级 3-2'
-                }]
-            }],
-            todos: todoStorage.fetch(),
+            // data5: [{
+            //     id: 1,
+            //     label: '一级 1',
+            //     children: [{
+            //         id: 4,
+            //         label: '二级 1-1',
+            //         children: [{
+            //             id: 9,
+            //             label: '三级 1-1-1'
+            //         }, {
+            //             id: 10,
+            //             label: '三级 1-1-2'
+            //         }]
+            //     }]
+            // }, {
+            //     id: 2,
+            //     label: '一级 2',
+            //     children: [{
+            //         id: 5,
+            //         label: '二级 2-1'
+            //     }, {
+            //         id: 6,
+            //         label: '二级 2-2'
+            //     }]
+            // }, {
+            //     id: 3,
+            //     label: '一级 3',
+            //     children: [{
+            //         id: 7,
+            //         label: '二级 3-1'
+            //     }, {
+            //         id: 8,
+            //         label: '二级 3-2'
+            //     }]
+            // }],
+            data5: todoStorage.fetch(),
             newTodo: '',
             editedTodo: null,
             visibility: 'all',
@@ -160,12 +197,20 @@ export default {
 
     // watch todos change for localStorage persistence
     watch: {
-        todos: {
+        data5: {
             handler: function (todos) {
                 todoStorage.save(todos)
             },
             deep: true
         }
+    },
+
+    mounted() {
+        this.$nextTick(function () {
+            // Code that will run only after the
+            // entire view has been rendered
+            updateCheckStatus(this.$refs.tree.getNode(this.data5[0]))
+        });
     },
 
     // computed properties
@@ -210,42 +255,69 @@ export default {
                 data.progress = 0
             }
             if (originProgress !== data.progress) {
-                this.handleProgress(data.progress, data, node)
+                this.updateProgress(data.progress, node)
             }
         },
-        handleProgress(val, data, node) {
-            console.log(val)
-            console.log(data)
+        updateProgress(newProgress, node) {
+            console.log(`updateProgress:`)
             console.log(node)
-            // update children
-            // updateChildrenCheckStatus(node, val)
-            // // val cannot be 0
-            // if (val === MAXPROGRESS) {
-            //     this.$refs.tree.setChecked(data, true, true)
-            // }
-            // todo: update parent
-            updateParentCheckStatus(node, val)
-        },
-        showProgress(val) {
-            return `${val * 25}%`
-        },
-        addTodo: function () {
-            var value = this.newTodo && this.newTodo.trim()
-            console.log(`newTodo ${value}`)
-            if (!value) {
+            node.data.progress = newProgress
+            if (newProgress === MAXPROGRESS) {
+                node.checked = true
+                node.indeterminate = false
+            } else if (newProgress === 0) {
+                node.checked = false
+                node.indeterminate = false
+            } else {
+                node.indeterminate = true
+            }
+            let parent = node.parent
+            if (!parent) {
                 return
             }
-            this.todos.push({
-                id: todoStorage.uid++,
-                title: value,
-                completed: false,
-                progress: 0
-            })
-            this.newTodo = ''
+
+            this.updateProgress(calNodeProgress(parent), parent)
+        },
+        showProgress(val) {
+            return `${(val * 25).toFixed(2)}%`
+        },
+        addRootTodo(newTodo) {
+            const newChild = { id: id++, label: newTodo, progress: 0, children: [] };
+
+            this.data5.push(newChild)
+        },
+        addTodo(node) {
+            // console.log(data)
+            const newChild = { id: id++, label: 'test', progress: 0, children: [] };
+            // if (!data.children) {
+            //     this.$set(data, 'children', []);
+            // }
+            // data.children.push(newChild);
+            // let node = this.$refs.tree.getNode(data)
+            this.$refs.tree.append(newChild, node)
+            this.updateProgress(calNodeProgress(node), node)
+            // var value = this.newTodo && this.newTodo.trim()
+            // console.log(`newTodo ${value}`)
+            // if (!value) {
+            //     return
+            // }
+            // this.todos.push({
+            //     id: todoStorage.uid++,
+            //     title: value,
+            //     completed: false,
+            //     progress: 0
+            // })
+            // this.newTodo = ''
         },
 
-        removeTodo: function (todo) {
-            this.todos.splice(this.todos.indexOf(todo), 1)
+        removeTodo(node, data) {
+            let parent = node.parent;
+            // const children = parent.data.children || parent.data;
+            // const index = children.findIndex(d => d.id === data.id);
+            // children.splice(index, 1);
+            this.$refs.tree.remove(node)
+            this.updateProgress(calNodeProgress(parent), parent)
+            // this.todos.splice(this.todos.indexOf(todo), 1)
         },
 
         editTodo: function (todo) {
@@ -253,20 +325,19 @@ export default {
             this.editedTodo = todo
         },
 
-        doneEdit: function (todo) {
-            if (!this.editedTodo) {
-                return
+        doneEdit: function (newval, node, data) {
+            console.log(newval)
+            newval = newval.trim()
+            if (!newval) {
+                this.removeTodo(node)
             }
-            this.editedTodo = null
-            todo.title = todo.title.trim()
-            if (!todo.title) {
-                this.removeTodo(todo)
-            }
+            data.label = newval
         },
 
-        cancelEdit: function (todo) {
-            this.editedTodo = null
-            todo.title = this.beforeEditCache
+        cancelEdit: function (node) {
+            console.log(node)
+            // this.editedTodo = null
+            // todo.title = this.beforeEditCache
         },
 
         removeCompleted: function () {
