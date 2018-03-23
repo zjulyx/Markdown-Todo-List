@@ -196,7 +196,7 @@ export default {
         this.$nextTick(function () {
             // Code that will run only after the
             // entire view has been rendered
-            markdownParser.convertMarkDownToObj('test.md', this.data5)
+            markdownParser.LoadMarkdownFile('test.md', this.data5)
             updateCheckStatus(this.$refs.tree.getNode(this.data5[0]))
         });
     },

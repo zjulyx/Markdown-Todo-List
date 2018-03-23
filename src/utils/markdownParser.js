@@ -17,23 +17,34 @@ function mkdirs(dirname, callback) {
 }
 
 export function convertObjToMarkDown(obj) {
-    // todo:use efficient add instead of whole convert
+    // todo: only save when exiting
 }
 
-export function convertMarkDownToObj(markdownFile, savedData) {
+
+function convertMarkDownToObj(markdownData, savedData) {
+    let contentArray = markdownData.split('\r\n')
+    // todo: parse title/date/each level todo(check,progress)
+
+}
+
+export function LoadMarkdownFile(markdownFile, savedData) {
     fs.readFile(markdownFile, 'utf8', (err, data) => {
         if (err) {
             // data file not exist will not show error box
             mkdirs(path.dirname(markdownFile), () => {
                 fs.writeFile(markdownFile, '', () => {
-                    savedData = {}
+                    // savedData = {}
+                    // convertMarkDownToObj('', savedData)
+                    LoadMarkdownFile(markdownFile, savedData)
                 })
             })
         } else {
-            console.log(data)
-            ''.split()
-            console.log(data.split('\r\n'))
-            savedData = {}
+            // console.log(data)
+            // ''.split()
+            // console.log(data.split('\r\n'))
+            // savedData = {}
+            convertMarkDownToObj(data, savedData)
         }
     })
 }
+
