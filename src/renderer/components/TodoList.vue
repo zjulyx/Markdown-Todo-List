@@ -34,12 +34,12 @@
 
 <script>
 import * as markdownParser from "../../utils/markdownParser";
+import * as constants from "../../utils/constants";
 
 // Full spec-compliant TodoMVC with localStorage persistence
 // and hash-based routing in ~120 effective lines of JavaScript.
 
 // localStorage persistence
-const MAXPROGRESS = 4
 var STORAGE_KEY = 'todos-vuejs-2.0'
 var todoStorage = {
     fetch: function () {
@@ -62,12 +62,12 @@ var filters = {
     },
     active: function (todos) {
         return todos.filter(function (todo) {
-            return todo.progress !== MAXPROGRESS
+            return todo.progress !== constants.MAXPROGRESS
         })
     },
     completed: function (todos) {
         return todos.filter(function (todo) {
-            return todo.progress === MAXPROGRESS
+            return todo.progress === constants.MAXPROGRESS
         })
     }
 }
@@ -75,7 +75,7 @@ var filters = {
 // let updateChildrenCheckStatus = function (node, newProgress) {
 //     node.data.progress = newProgress
 //     // newProgress cannot be 0
-//     if (newProgress === MAXPROGRESS) {
+//     if (newProgress === constants.MAXPROGRESS) {
 //         node.checked = true
 //     } else {
 //         node.indeterminate = true
@@ -89,7 +89,7 @@ let id = 1000
 
 // let updateParentCheckStatus = function (node, newProgress) {
 //     node.data.progress = newProgress
-//     if (newProgress === MAXPROGRESS) {
+//     if (newProgress === constants.MAXPROGRESS) {
 //         node.checked = true
 //         node.indeterminate = false
 //     } else if (newProgress === 0) {
@@ -123,7 +123,7 @@ let updateCheckStatus = function (node) {
     if (!node) {
         return
     }
-    if (node.data.progress === MAXPROGRESS) {
+    if (node.data.progress === constants.MAXPROGRESS) {
         node.checked = true
         node.indeterminate = false
     } else if (node.data.progress !== 0) {
@@ -174,11 +174,11 @@ export default {
             //         label: '二级 3-2'
             //     }]
             // }],
-            data5: todoStorage.fetch(),
+            data5: [],
             newTodo: '',
             editedTodo: null,
             visibility: 'all',
-            MAXPROGRESS: MAXPROGRESS
+            MAXPROGRESS: constants.MAXPROGRESS
         };
     },
 
@@ -196,8 +196,13 @@ export default {
         this.$nextTick(function () {
             // Code that will run only after the
             // entire view has been rendered
-            markdownParser.LoadMarkdownFile('test.md', this.data5)
-            updateCheckStatus(this.$refs.tree.getNode(this.data5[0]))
+            markdownParser.LoadMarkdownFile('test.md', res => {
+                this.data5 = res[new Date().toLocaleDateString()] || []
+                console.log(res)
+                updateCheckStatus(this.$refs.tree.getNode(this.data5[0]))
+                // console.log(this.data5)
+            })
+            // updateCheckStatus(this.$refs.tree.getNode(this.data5[0]))
         });
     },
 
@@ -238,7 +243,7 @@ export default {
             let node = this.$refs.tree.getNode(data)
             let originProgress = data.progress
             if (checked) {
-                data.progress = MAXPROGRESS
+                data.progress = constants.MAXPROGRESS
             } else if (!node.indeterminate) {
                 data.progress = 0
             }
@@ -250,7 +255,7 @@ export default {
             console.log(`updateProgress:`)
             console.log(node)
             node.data.progress = newProgress
-            if (newProgress === MAXPROGRESS) {
+            if (newProgress === constants.MAXPROGRESS) {
                 node.checked = true
                 node.indeterminate = false
             } else if (newProgress === 0) {
@@ -267,7 +272,7 @@ export default {
             this.updateProgress(calNodeProgress(parent), parent)
         },
         showProgress(val) {
-            return `${(val * 25).toFixed(2)}%`
+            return `${(val * 100 / constants.MAXPROGRESS).toFixed(2)}%`
         },
         addRootTodo(newTodo) {
             const newChild = { id: id++, label: newTodo, progress: 0, children: [] };
