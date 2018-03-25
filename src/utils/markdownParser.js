@@ -18,9 +18,43 @@ function mkdirs(dirname, callback) {
     })
 }
 
-// export function convertObjToMarkDown(obj) {
-//     // todo: only save when exiting
+// string.prototype.appendNewLine = function (newLine) {
+//     this += '\r\n' + newLine
 // }
+
+export function convertProgressToDisplay(val) {
+    return `${(val * 100 / constants.MAXPROGRESS).toFixed(2)}%`
+}
+
+export function convertProgressToInternal(str) {
+    return parseFloat(str) * constants.MAXPROGRESS / 100
+}
+
+function convertArrToMarkDownPerDate(arr, preBlank = '') {
+    let res = ''
+    for (let obj of arr) {
+        // let finished = obj.finished
+        console.log('convertArrToMarkDownPerDate')
+        console.log(obj)
+        let progress = convertProgressToDisplay(obj.progress)
+        res += `${preBlank}- [${obj.finished ? 'x' : ' '}] ${obj.label} (${progress})\r\n`
+        res += convertArrToMarkDownPerDate(obj.children, preBlank + '    ')
+    }
+    return res
+}
+
+export function convertObjToMarkDown(obj) {
+    // todo: only save when exiting
+    let res = `# ${obj.title}\r\n\r\n`
+    delete obj.title
+    console.log(obj)
+    let keyDict = Object.keys(obj).sort((a, b) => { return new Date(a) - new Date(b) })
+    for (let curDate of keyDict) {
+        res += `## ${curDate}\r\n\r\n`
+        res += convertArrToMarkDownPerDate(obj[curDate])
+    }
+    return res
+}
 
 // function convertMarkDownToObj(markdownData, savedData) {
 //     let contentArray = markdownData.split('\r\n')
@@ -39,7 +73,7 @@ function parseTodoItem(line) {
     // console.log(arr)
     let finished = arr[1].trim() === 'x'
     let label = arr[2].trim()
-    let progress = parseFloat(arr[3]) * constants.MAXPROGRESS / 100
+    let progress = convertProgressToInternal(arr[3])
     if (isNaN(progress)) {
         progress = finished ? constants.MAXPROGRESS : 0
     }

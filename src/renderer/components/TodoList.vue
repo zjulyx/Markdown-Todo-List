@@ -35,6 +35,7 @@
 <script>
 import * as markdownParser from "../../utils/markdownParser";
 import * as constants from "../../utils/constants";
+import fs from 'fs'
 
 // Full spec-compliant TodoMVC with localStorage persistence
 // and hash-based routing in ~120 effective lines of JavaScript.
@@ -198,12 +199,21 @@ export default {
             // entire view has been rendered
             markdownParser.LoadMarkdownFile('test.md', res => {
                 this.data5 = res[new Date().toLocaleDateString()] || []
+                fs.writeFile('res.md', markdownParser.convertObjToMarkDown(res), err => {
+                    console.log(err)
+                })
                 console.log(res)
                 updateCheckStatus(this.$refs.tree.getNode(this.data5[0]))
                 // console.log(this.data5)
             })
             // updateCheckStatus(this.$refs.tree.getNode(this.data5[0]))
         });
+    },
+
+    beforeDestroy() {
+        fs.write('res.md', markdownParser.convertObjToMarkDown(this.data5), err => {
+            console.log(err)
+        })
     },
 
     // computed properties
@@ -272,7 +282,7 @@ export default {
             this.updateProgress(calNodeProgress(parent), parent)
         },
         showProgress(val) {
-            return `${(val * 100 / constants.MAXPROGRESS).toFixed(2)}%`
+            return markdownParser.convertProgressToDisplay(val)
         },
         addRootTodo(newTodo) {
             const newChild = { id: id++, label: newTodo, progress: 0, children: [] };
