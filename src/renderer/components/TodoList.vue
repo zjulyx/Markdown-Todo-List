@@ -33,14 +33,10 @@
 </template>
 
 <script>
-import * as markdownParser from "../../utils/markdownParser";
 import * as constants from "../../utils/constants";
-import fs from 'fs'
+import * as markdownParser from "../../utils/markdownParser";
+import * as util from "../../utils/util";
 
-// Full spec-compliant TodoMVC with localStorage persistence
-// and hash-based routing in ~120 effective lines of JavaScript.
-
-// localStorage persistence
 var STORAGE_KEY = 'todos-vuejs-2.0'
 var todoStorage = {
     fetch: function () {
@@ -73,43 +69,7 @@ var filters = {
     }
 }
 
-// let updateChildrenCheckStatus = function (node, newProgress) {
-//     node.data.progress = newProgress
-//     // newProgress cannot be 0
-//     if (newProgress === constants.MAXPROGRESS) {
-//         node.checked = true
-//     } else {
-//         node.indeterminate = true
-//     }
-//     for (let child of node.childNodes) {
-//         updateChildrenCheckStatus(child, newProgress)
-//     }
-// }
-
 let id = 1000
-
-// let updateParentCheckStatus = function (node, newProgress) {
-//     node.data.progress = newProgress
-//     if (newProgress === constants.MAXPROGRESS) {
-//         node.checked = true
-//         node.indeterminate = false
-//     } else if (newProgress === 0) {
-//         node.checked = false
-//         node.indeterminate = false
-//     } else {
-//         node.indeterminate = true
-//     }
-//     let parent = node.parent
-//     if (!parent) {
-//         return
-//     }
-//     let progressSum = 0
-//     for (let sibling of parent.childNodes) {
-//         progressSum += sibling.data.progress || 0
-//     }
-//     progressSum = progressSum / parent.childNodes.length
-//     updateParentCheckStatus(parent, progressSum)
-// }
 
 let calNodeProgress = function (node) {
     let progressSum = 0
@@ -139,42 +99,6 @@ export default {
     name: "todo-list",
     data() {
         return {
-            value4: null,
-            // data5: [{
-            //     id: 1,
-            //     label: '一级 1',
-            //     children: [{
-            //         id: 4,
-            //         label: '二级 1-1',
-            //         children: [{
-            //             id: 9,
-            //             label: '三级 1-1-1'
-            //         }, {
-            //             id: 10,
-            //             label: '三级 1-1-2'
-            //         }]
-            //     }]
-            // }, {
-            //     id: 2,
-            //     label: '一级 2',
-            //     children: [{
-            //         id: 5,
-            //         label: '二级 2-1'
-            //     }, {
-            //         id: 6,
-            //         label: '二级 2-2'
-            //     }]
-            // }, {
-            //     id: 3,
-            //     label: '一级 3',
-            //     children: [{
-            //         id: 7,
-            //         label: '二级 3-1'
-            //     }, {
-            //         id: 8,
-            //         label: '二级 3-2'
-            //     }]
-            // }],
             data5: [],
             newTodo: '',
             editedTodo: null,
@@ -183,7 +107,6 @@ export default {
         };
     },
 
-    // watch todos change for localStorage persistence
     watch: {
         data5: {
             handler: function (todos) {
@@ -195,29 +118,19 @@ export default {
 
     mounted() {
         this.$nextTick(function () {
-            // Code that will run only after the
-            // entire view has been rendered
             markdownParser.LoadMarkdownFile('test.md', res => {
                 this.data5 = res[new Date().toLocaleDateString()] || []
-                fs.writeFile('res.md', markdownParser.convertObjToMarkDown(res), err => {
-                    console.log(err)
-                })
+                markdownParser.SaveMarkdownFile('res.md', res)
                 console.log(res)
                 updateCheckStatus(this.$refs.tree.getNode(this.data5[0]))
-                // console.log(this.data5)
             })
-            // updateCheckStatus(this.$refs.tree.getNode(this.data5[0]))
         });
     },
 
     beforeDestroy() {
-        fs.write('res.md', markdownParser.convertObjToMarkDown(this.data5), err => {
-            console.log(err)
-        })
+        markdownParser.SaveMarkdownFile('res.md', this.data5)
     },
 
-    // computed properties
-    // http://vuejs.org/guide/computed.html
     computed: {
         filteredTodos: function () {
             return filters[this.visibility](this.todos)
@@ -243,8 +156,6 @@ export default {
         }
     },
 
-    // methods that implement data logic.
-    // note there's no DOM manipulation here at all.
     methods: {
         handleCheckChange(data, checked, subchecked) {
             console.log(data)
@@ -282,7 +193,7 @@ export default {
             this.updateProgress(calNodeProgress(parent), parent)
         },
         showProgress(val) {
-            return markdownParser.convertProgressToDisplay(val)
+            return util.ConvertProgressToDisplay(val)
         },
         addRootTodo(newTodo) {
             const newChild = { id: id++, label: newTodo, progress: 0, children: [] };
@@ -290,37 +201,15 @@ export default {
             this.data5.push(newChild)
         },
         addTodo(node) {
-            // console.log(data)
             const newChild = { id: id++, label: 'test', progress: 0, children: [] };
-            // if (!data.children) {
-            //     this.$set(data, 'children', []);
-            // }
-            // data.children.push(newChild);
-            // let node = this.$refs.tree.getNode(data)
             this.$refs.tree.append(newChild, node)
             this.updateProgress(calNodeProgress(node), node)
-            // var value = this.newTodo && this.newTodo.trim()
-            // console.log(`newTodo ${value}`)
-            // if (!value) {
-            //     return
-            // }
-            // this.todos.push({
-            //     id: todoStorage.uid++,
-            //     title: value,
-            //     completed: false,
-            //     progress: 0
-            // })
-            // this.newTodo = ''
         },
 
         removeTodo(node, data) {
             let parent = node.parent;
-            // const children = parent.data.children || parent.data;
-            // const index = children.findIndex(d => d.id === data.id);
-            // children.splice(index, 1);
             this.$refs.tree.remove(node)
             this.updateProgress(calNodeProgress(parent), parent)
-            // this.todos.splice(this.todos.indexOf(todo), 1)
         },
 
         editTodo: function (todo) {
@@ -339,8 +228,6 @@ export default {
 
         cancelEdit: function (node) {
             console.log(node)
-            // this.editedTodo = null
-            // todo.title = this.beforeEditCache
         },
 
         removeCompleted: function () {

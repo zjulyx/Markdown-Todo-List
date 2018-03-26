@@ -2,78 +2,37 @@ import fs from 'fs'
 import path from 'path'
 import readline from 'readline'
 import * as constants from './constants'
+import * as util from './util'
 
-function mkdirs(dirname, callback) {
-    fs.access(dirname, err => {
-        if (!err) {
-            // exist
-            if (callback) {
-                callback()
-            }
-        } else {
-            mkdirs(path.dirname(dirname), function () {
-                fs.mkdir(dirname, callback)
-            })
-        }
-    })
-}
+let curId = 0
 
-// string.prototype.appendNewLine = function (newLine) {
-//     this += '\r\n' + newLine
-// }
-
-export function convertProgressToDisplay(val) {
-    return `${(val * 100 / constants.MAXPROGRESS).toFixed(2)}%`
-}
-
-export function convertProgressToInternal(str) {
-    return parseFloat(str) * constants.MAXPROGRESS / 100
-}
-
-function convertArrToMarkDownPerDate(arr, preBlank = '') {
+function convertEachDayArrToMarkDown(arr, preBlank = '') {
     let res = ''
     for (let obj of arr) {
-        // let finished = obj.finished
-        console.log('convertArrToMarkDownPerDate')
-        console.log(obj)
-        let progress = convertProgressToDisplay(obj.progress)
+        let progress = util.ConvertProgressToDisplay(obj.progress)
         res += `${preBlank}- [${obj.finished ? 'x' : ' '}] ${obj.label} (${progress})\r\n`
-        res += convertArrToMarkDownPerDate(obj.children, preBlank + '    ')
+        res += convertEachDayArrToMarkDown(obj.children, preBlank + '    ')
     }
     return res
 }
 
-export function convertObjToMarkDown(obj) {
-    // todo: only save when exiting
+function convertObjToMarkDown(obj) {
     let res = `# ${obj.title}\r\n\r\n`
     delete obj.title
     console.log(obj)
     let keyDict = Object.keys(obj).sort((a, b) => { return new Date(a) - new Date(b) })
     for (let curDate of keyDict) {
         res += `## ${curDate}\r\n\r\n`
-        res += convertArrToMarkDownPerDate(obj[curDate])
+        res += convertEachDayArrToMarkDown(obj[curDate])
     }
     return res
 }
 
-// function convertMarkDownToObj(markdownData, savedData) {
-//     let contentArray = markdownData.split('\r\n')
-//     // todo: parse title/date/each level todo(check,progress)
-// }
-
-// function parseEachLine(line, res) {
-//     //
-//     return res
-// }
-let curId = 0
-
 function parseTodoItem(line) {
-    // console.log(line)
     let arr = /[-|*]\s*\[(.*)\]\s*(.*)\(?(.*)%?\)?/.exec(line)
-    // console.log(arr)
     let finished = arr[1].trim() === 'x'
     let label = arr[2].trim()
-    let progress = convertProgressToInternal(arr[3])
+    let progress = util.ConvertProgressToInternal(arr[3])
     if (isNaN(progress)) {
         progress = finished ? constants.MAXPROGRESS : 0
     }
@@ -86,99 +45,78 @@ function parseTodoItem(line) {
     }
 }
 
-export function LoadMarkdownFile(markdownFile, cb) {
+function convertMarkDownToObj(markdownFile, finishCallback) {
+    let markdownStream = fs.createReadStream(markdownFile);
+    let markdown = readline.createInterface({
+        input: markdownStream
+    });
+    let res = {}
+    let stack = []
+    let curDate = new Date().toLocaleDateString()
+    markdown.on('line', line => {
+        switch (line[0]) {
+            case ' ':
+            case '\t':
+                if (!line.trimLeft().startsWith('-') && !line.trimLeft().startsWith('*')) {
+                    break
+                }
+                let curNode = parseTodoItem(line.trimLeft())
+                let curBlankCount = line.length - line.trimLeft().length
+                let curLevel = curBlankCount / 4 + 1
+                if (curLevel <= stack.length) {
+                    stack.splice(curLevel - 1, stack.length)
+                }
+                let parent = stack[stack.length - 1]
+                parent.children.push(curNode)
+                stack.push(curNode)
+                break
+            case '#':
+                if (line.startsWith('##')) {
+                    // date
+                    let arr = /##(.*)/.exec(line)
+                    curDate = new Date(arr[1].trim()).toLocaleDateString()
+                } else {
+                    // title
+                    let arr = /#(.*)/.exec(line)
+                    res.title = arr[1].trim()
+                }
+                break
+            case '-':
+            case '*':
+                if (!(curDate in res)) {
+                    res[curDate] = []
+                }
+                res[curDate].push(parseTodoItem(line))
+                stack = [res[curDate][0]]
+                break
+            default:
+                break
+        }
+    })
+
+    markdown.on('close', () => {
+        finishCallback(res)
+    })
+}
+
+export function LoadMarkdownFile(markdownFile, callback) {
     fs.access(markdownFile, (err) => {
         if (err) {
-            mkdirs(path.dirname(markdownFile), () => {
+            util.MakeDirs(path.dirname(markdownFile), () => {
                 fs.writeFile(markdownFile, '', err => {
                     console.log(err)
                     let res = {}
-                    cb(res)
+                    callback(res)
                 })
             })
         } else {
-            let fRead = fs.createReadStream(markdownFile);
-            let objReadline = readline.createInterface({
-                input: fRead
-            });
-            let res = {}
-            // let blankSeparator = ''
-            let curDate = new Date().toLocaleDateString()
-            // let prevBlankCount = 0
-            // let curLevel = 1
-            let stack = []
-            objReadline.on('line', line => {
-                // some operations
-                switch (line[0]) {
-                    case ' ':
-                    case '\t':
-                        if (!line.trimLeft().startsWith('-') && !line.trimLeft().startsWith('*')) {
-                            break
-                        }
-                        let curNode = parseTodoItem(line.trimLeft())
-                        let curBlankCount = line.length - line.trimLeft().length
-                        let curLevel = curBlankCount / 4 + 1
-                        if (curLevel <= stack.length) {
-                            stack.splice(curLevel - 1, stack.length)
-                        }
-                        let parent = stack[stack.length - 1]
-                        parent.children.push(curNode)
-                        stack.push(curNode)
-                        // if (curBlankCount > prevBlankCount) {
-                        //     curLevel += 1
-                        // } else if (curBlankCount < prevBlankCount) {
-                        //     curLevel -= 1
-                        // }
-                        // if (curLevel < 1) {
-                        //     curLevel = 1
-                        // }
-                        // prevBlankCount = curBlankCount
-                        // let cur = res[curDate]
-                        // for (let i = 0; i < curLevel; ++i) {
-                        //     if (!('children' in cur)) {
-                        //         cur.children = []
-                        //         curLevel = i + 1
-                        //         break
-                        //     }
-                        // }
-                        break
-                    case '#':
-                        if (line.startsWith('##')) {
-                            // date
-                            let arr = /##(.*)/.exec(line)
-                            curDate = new Date(arr[1].trim()).toLocaleDateString()
-                        } else {
-                            // title
-                            let arr = /#(.*)/.exec(line)
-                            res.title = arr[1].trim()
-                        }
-                        break
-                    case '-':
-                    case '*':
-                        if (!(curDate in res)) {
-                            res[curDate] = []
-                        }
-                        res[curDate].push(parseTodoItem(line))
-                        stack = [res[curDate][0]]
-                        break
-                    default:
-                        break
-                }
-                // if (line.startsWith('\t') || line.startsWith(' ')) {
-                //     // nested level
-                // } else if (line.startsWith('##')) {
-                //     // date
-                // } else if (line.startsWith('#')) {
-                //     // title
-                // } else if (line.startsWith('-')) {
-                //     // root level
-                // } else {
-                // }
-            })
-
-            objReadline.on('close', () => {
-                cb(res)
-            })
+            convertMarkDownToObj(markdownFile, callback)
         }
+    })
+}
+
+export function SaveMarkdownFile(markdownFile, obj) {
+    fs.writeFile(markdownFile, convertObjToMarkDown(obj), err => {
+        console.log(err)
     })
 }
