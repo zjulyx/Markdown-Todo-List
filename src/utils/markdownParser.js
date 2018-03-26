@@ -19,7 +19,7 @@ function convertEachDayArrToMarkDown(arr, preBlank = '') {
 function convertObjToMarkDown(obj) {
     let res = `# ${obj.title}\r\n\r\n`
     delete obj.title
-    console.log(obj)
+    // console.log(obj)
     let keyDict = Object.keys(obj).sort((a, b) => { return new Date(a) - new Date(b) })
     for (let curDate of keyDict) {
         res += `## ${curDate}\r\n\r\n`
@@ -52,7 +52,7 @@ function convertMarkDownToObj(markdownFile, finishCallback) {
     });
     let res = {}
     let stack = []
-    let curDate = new Date().toLocaleDateString()
+    let curDate = util.FormatDateTime()
     markdown.on('line', line => {
         switch (line[0]) {
             case ' ':
@@ -74,7 +74,7 @@ function convertMarkDownToObj(markdownFile, finishCallback) {
                 if (line.startsWith('##')) {
                     // date
                     let arr = /##(.*)/.exec(line)
-                    curDate = new Date(arr[1].trim()).toLocaleDateString()
+                    curDate = util.FormatDateTime(arr[1].trim())
                 } else {
                     // title
                     let arr = /#(.*)/.exec(line)
@@ -104,7 +104,9 @@ export function LoadMarkdownFile(markdownFile, callback) {
         if (err) {
             util.MakeDirs(path.dirname(markdownFile), () => {
                 fs.writeFile(markdownFile, '', err => {
-                    console.log(err)
+                    if (err) {
+                        console.log(err)
+                    }
                     let res = {}
                     callback(res)
                 })
@@ -117,6 +119,8 @@ export function LoadMarkdownFile(markdownFile, callback) {
 
 export function SaveMarkdownFile(markdownFile, obj) {
     fs.writeFile(markdownFile, convertObjToMarkDown(obj), err => {
-        console.log(err)
+        if (err) {
+            console.log(err)
+        }
     })
 }

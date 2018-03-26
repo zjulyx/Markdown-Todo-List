@@ -8,7 +8,7 @@
                 </el-tag>
             </el-header>
             <el-main style="width: 100%">
-                <el-tree :data="data5" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" style="width: 100%">
+                <el-tree :data="wholeData[curDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" style="width: 100%">
                     <span slot-scope="{ node, data }">
                         <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" @keyup.esc.native="cancelEdit(node)" size="mini">
                             <el-container slot="append">
@@ -23,6 +23,8 @@
                         </span>
                     </span>
                 </el-tree>
+                <el-date-picker v-model="curDate" align="right" type="date" placeholder="Choose Date" :picker-options="pickerOptions">
+                </el-date-picker>
             </el-main>
             <el-footer>
                 <el-input placeholder="Add new Todo" v-model="newTodo" @change="addRootTodo(newTodo)" clearable>
@@ -99,18 +101,46 @@ export default {
     name: "todo-list",
     data() {
         return {
-            data5: [],
+            wholeData: {},
             newTodo: '',
             editedTodo: null,
             visibility: 'all',
-            MAXPROGRESS: constants.MAXPROGRESS
+            curDate: util.FormatDateTime(),
+            MAXPROGRESS: constants.MAXPROGRESS,
+            pickerOptions: {
+                disabledDate: time => {
+                    let thisDate = util.FormatDateTime(time)
+                    return time.getTime() > Date.now() || (!(thisDate in this.wholeData));
+                },
+                shortcuts: [{
+                    text: 'Today',
+                    onClick(picker) {
+                        picker.$emit('pick', new Date());
+                    }
+                }, {
+                    text: 'Yesterday',
+                    onClick(picker) {
+                        const date = new Date();
+                        date.setTime(date.getTime() - 3600 * 1000 * 24);
+                        picker.$emit('pick', date);
+                    }
+                }, {
+                    text: 'One Week Ago',
+                    onClick(picker) {
+                        const date = new Date();
+                        date.setTime(date.getTime() - 3600 * 1000 * 24 * 7);
+                        picker.$emit('pick', date);
+                    }
+                }]
+            }
         };
     },
 
     watch: {
-        data5: {
-            handler: function (todos) {
-                todoStorage.save(todos)
+        wholeData: {
+            handler: function (newWholeData) {
+                console.log(newWholeData)
+                // markdownParser.SaveMarkdownFile('test.md', newWholeData)
             },
             deep: true
         }
@@ -119,31 +149,30 @@ export default {
     mounted() {
         this.$nextTick(function () {
             markdownParser.LoadMarkdownFile('test.md', res => {
-                this.data5 = res[new Date().toLocaleDateString()] || []
-                markdownParser.SaveMarkdownFile('res.md', res)
+                this.wholeData = res
+                // markdownParser.SaveMarkdownFile('res.md', res)
                 console.log(res)
-                updateCheckStatus(this.$refs.tree.getNode(this.data5[0]))
+                updateCheckStatus(this.$refs.tree.getNode(this.wholeData[this.curDate][0]))
             })
         });
     },
 
-    beforeDestroy() {
-        markdownParser.SaveMarkdownFile('res.md', this.data5)
-    },
-
+    // beforeDestroy() {
+    //     markdownParser.SaveMarkdownFile('res.md', this.wholeData)
+    // },
     computed: {
         filteredTodos: function () {
-            return filters[this.visibility](this.todos)
+            return filters[this.visibility](this.wholeData)
         },
         remaining: function () {
-            return filters.active(this.todos).length
+            return filters.active(this.wholeData).length
         },
         allDone: {
             get: function () {
                 return this.remaining === 0
             },
             set: function (value) {
-                this.todos.forEach(function (todo) {
+                this.wholeData.forEach(function (todo) {
                     todo.completed = value
                 })
             }
@@ -158,9 +187,9 @@ export default {
 
     methods: {
         handleCheckChange(data, checked, subchecked) {
-            console.log(data)
-            console.log(checked)
-            console.log(subchecked)
+            // console.log(data)
+            // console.log(checked)
+            // console.log(subchecked)
             let node = this.$refs.tree.getNode(data)
             let originProgress = data.progress
             if (checked) {
@@ -173,8 +202,8 @@ export default {
             }
         },
         updateProgress(newProgress, node) {
-            console.log(`updateProgress:`)
-            console.log(node)
+            // console.log(`updateProgress:`)
+            // console.log(node)
             node.data.progress = newProgress
             if (newProgress === constants.MAXPROGRESS) {
                 node.checked = true
@@ -198,7 +227,7 @@ export default {
         addRootTodo(newTodo) {
             const newChild = { id: id++, label: newTodo, progress: 0, children: [] };
 
-            this.data5.push(newChild)
+            this.wholeData[this.curDate].push(newChild)
         },
         addTodo(node) {
             const newChild = { id: id++, label: 'test', progress: 0, children: [] };
@@ -218,7 +247,7 @@ export default {
         },
 
         doneEdit: function (newval, node, data) {
-            console.log(newval)
+            // console.log(newval)
             newval = newval.trim()
             if (!newval) {
                 this.removeTodo(node)
@@ -227,11 +256,11 @@ export default {
         },
 
         cancelEdit: function (node) {
-            console.log(node)
+            // console.log(node)
         },
 
         removeCompleted: function () {
-            this.todos = filters.active(this.todos)
+            this.wholeData = filters.active(this.wholeData)
         }
     },
 
