@@ -74,12 +74,15 @@ var filters = {
 let id
 
 let calNodeProgress = function (node) {
+    let childCount = node.childNodes.length
+    if (childCount === 0) {
+        return node.data.progress
+    }
     let progressSum = 0
     for (let child of node.childNodes) {
         progressSum += child.data.progress
     }
-    let childCount = node.childNodes.length
-    return (childCount === 0) ? progressSum : progressSum / childCount
+    return progressSum / childCount
 }
 
 let updateCheckStatus = function (node) {
@@ -258,7 +261,7 @@ export default {
             this.wholeData[this.formatedCurDate].push(newChild)
         },
         addTodo(node) {
-            const newChild = { id: id++, label: 'test', progress: 0, finished: false, children: [] };
+            const newChild = { id: id++, label: 'new todo...', progress: 0, finished: false, children: [] };
             this.$refs.tree.append(newChild, node)
             this.updateProgress(calNodeProgress(node), node)
         },
