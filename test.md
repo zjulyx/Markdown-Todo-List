@@ -1,31 +1,22 @@
-# todo
+# undefined
 
-## 2018-03-25
+## 2018-03-14
 
-- [ ] 7 (33.33%)
-    - [x] test (100.00%)
-    - [x] test (100.00%)
-    - [ ] test (0.00%)
-    - [ ] test (0.00%)
-        - [ ] test (0.00%)
-        - [ ] new todo (0.00%)
-        - [ ] new todo (0.00%)
-        - [ ] new todo (0.00%)
-        - [ ] new todo (0.00%)
-        - [ ] new todo (0.00%)
-        - [ ] new todo (0.00%)
-        - [ ] new todo (0.00%)
-        - [ ] new todo (0.00%)
-        - [ ] new todo (0.00%)
-    - [ ] test (0.00%)
-    - [ ] test (0.00%)
-- [ ] high (0.00%)
-- [x] highsdfsdf (100.00%)
-- [ ] highsdfsdfsdfs (0.00%)
-- [ ] highsdfsdfsdfsdf (0.00%)
-- [ ] highsdfsdfsdfsdfsdg (0.00%)
-- [ ] highsdfsdfsdfsdfsdgs (0.00%)
-- [ ] highsdfsdfsdfsdfsdgsdg (0.00%)
-- [ ] highsdfsdfsdfsdfsdgsdgs (0.00%)
-- [ ] highsdfsdfsdfsdfsdgsdgsg (0.00%)
-- [ ] highsdfsdfsdfsdfsdgsdgsgsdg (0.00%)
+- [ ] dgdfg (0.00%)
+- [ ] dgdfgvcbdr (0.00%)
+- [ ] dgdfgvcbdrgret (0.00%)
+- [ ] dgdfgvcbdrgretert (0.00%)
+- [ ] dgdfgvcbdrgretertreg (0.00%)
+- [ ] dgdfgvcbdrgretertregfcg (0.00%)
+- [ ] dgdfgvcbdrgretertregfcgdf (0.00%)
+- [ ] dgdfgvcbdrgretertregfcgdfge (0.00%)
+- [ ] dgdfgvcbdrgretertregfcgdfger (0.00%)
+- [ ] dgdfgvcbdrgretertregfcgdfgerrew (0.00%)
+
+## 2018-03-26
+
+- [ ] sdfsdfsd (0.00%)
+- [ ] sdfsdfsddfgdg (0.00%)
+
+## 2018-03-27
+

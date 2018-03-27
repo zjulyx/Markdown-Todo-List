@@ -21,10 +21,13 @@ function convertObjToMarkDown(obj) {
     let res = `# ${obj.title}\r\n\r\n`
     // console.log(obj)
     let keyDict = Object.keys(obj).sort((a, b) => { return new Date(a) - new Date(b) })
-    for (let curDate of keyDict) {
+    for (let [index, curDate] of keyDict.entries()) {
         if (curDate !== 'title') {
             res += `## ${curDate}\r\n\r\n`
-            res += convertEachDayArrToMarkDown(obj[curDate])
+            res += convertEachDayArrToMarkDown(obj[curDate]);
+            if (index !== keyDict.length - 1) {
+                res += '\r\n'
+            }
         }
     }
     return res

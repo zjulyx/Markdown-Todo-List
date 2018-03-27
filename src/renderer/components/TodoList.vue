@@ -8,7 +8,7 @@
                 </el-tag>
             </el-header>
             <el-main style="width: 100%">
-                <el-tree :data="wholeData[formatedCurDate]||[]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" style="width: 100%">
+                <el-tree :data="wholeData[curDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" style="width: 100%">
                     <span slot-scope="{ node, data }">
                         <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" @keyup.esc.native="cancelEdit(node)" size="mini">
                             <el-container slot="append">
@@ -23,7 +23,7 @@
                         </span>
                     </span>
                 </el-tree>
-                <el-date-picker v-model="curDate" align="right" type="date" placeholder="Choose Date" :picker-options="pickerOptions">
+                <el-date-picker v-model="curDate" align="right" type="date" placeholder="Choose Date" :picker-options="pickerOptions" value-format="yyyy-MM-dd">
                 </el-date-picker>
             </el-main>
             <el-footer>
@@ -110,7 +110,7 @@ export default {
             newTodo: '',
             editedTodo: null,
             visibility: 'all',
-            curDate: new Date(),
+            curDate: util.FormatDateTime(new Date()),
             MAXPROGRESS: constants.MAXPROGRESS,
             pickerOptions: {
                 disabledDate: time => {
@@ -141,32 +141,45 @@ export default {
     },
 
     watch: {
-        wholeData: {
-            handler: function (newWholeData) {
-                // console.log(newWholeData)
-                this.$nextTick(function () {
-                    markdownParser.SaveMarkdownFile('test.md', newWholeData)
-                })
-            },
-            deep: true
-        },
+        // curTodoByDate: {
+        //     handler: function (newWholeData) {
+        //         // console.log(newWholeData)
+        //         console.log('wholeData changed')
+        //         // this.$nextTick(function () {
+        //         // this.updateCheckStatusAtFirst(this.formatedCurDate)
+        //         markdownParser.SaveMarkdownFile('test.md', this.wholeData)
+        //         // })
+        //     },
+        //     deep: true
+        // },
         curDate: {
             handler: function (newCurDate) {
                 // first make sure tree is loaded
-                this.$nextTick(function () {
-                    this.updateCheckStatusAtFirst(util.FormatDateTime(newCurDate))
-                })
-            },
-            deep: true
+                console.log('CurDate changed')
+                // let formatedCurDate = util.FormatDateTime(newCurDate)
+                if (!(newCurDate in this.wholeData)) {
+                    this.wholeData[newCurDate] = []
+                    this.$nextTick(function () {
+                        this.updateCheckStatusAtFirst(util.FormatDateTime(newCurDate))
+                        console.log('save data')
+                        console.log(this.wholeData)
+                        markdownParser.SaveMarkdownFile('test.md', this.wholeData)
+                    })
+                }
+            }
         }
     },
 
     mounted() {
         this.$nextTick(function () {
             markdownParser.LoadMarkdownFile('test.md', res => {
+                console.log('read file')
                 console.log(res)
                 this.wholeData = res
                 id = markdownParser.curId
+                if (!(this.curDate in this.wholeData)) {
+                    this.wholeData[this.curDate] = []
+                }
                 // markdownParser.SaveMarkdownFile('res.md', res)
                 this.updateCheckStatusAtFirst(this.formatedCurDate)
             })
@@ -177,8 +190,12 @@ export default {
     //     markdownParser.SaveMarkdownFile('res.md', this.wholeData)
     // },
     computed: {
+        curTodoByDate() {
+            return this.wholeData[this.curDate]
+        },
         formatedCurDate() {
-            return util.FormatDateTime(this.curDate)
+            return this.curDate
+            // return util.FormatDateTime(this.curDate)
         },
         filteredTodos: function () {
             return filters[this.visibility](this.wholeData)
@@ -206,10 +223,12 @@ export default {
 
     methods: {
         updateCheckStatusAtFirst(formatedCurDate) {
-            if (this.wholeData[formatedCurDate]) {
+            if (formatedCurDate in this.wholeData) {
                 for (let rootData of this.wholeData[formatedCurDate]) {
                     updateCheckStatus(this.$refs.tree.getNode(rootData))
                 }
+            } else {
+                this.wholeData[formatedCurDate] = []
             }
         },
         handleCheckChange(data, checked, subchecked) {
@@ -244,6 +263,9 @@ export default {
             }
             let parent = node.parent
             if (!parent) {
+                console.log('save data in updateProgress')
+                console.log(this.wholeData)
+                markdownParser.SaveMarkdownFile('test.md', this.wholeData)
                 return
             }
 
@@ -254,11 +276,22 @@ export default {
         },
         addRootTodo(newTodo) {
             const newChild = { id: id++, label: newTodo, progress: 0, finished: false, children: [] };
-            // console.log(this.formatedCurDate)
+            // console.log('addRootTodo')
+            // console.log(this.wholeData)
+            // console.log(this.$refs.tree)
             if (!(this.formatedCurDate in this.wholeData)) {
+                console.log('not exist')
                 this.wholeData[this.formatedCurDate] = []
             }
-            this.wholeData[this.formatedCurDate].push(newChild)
+            // this.$refs.tree.insertAfter(newChild, this.$refs.tree.getNode(1))
+            // this.wholeData[this.formatedCurDate].push(newChild)
+            // this.$refs.tree.data = this.wholeData[this.formatedCurDate]
+            // // markdownParser.SaveMarkdownFile('test.md', this.wholeData)
+            // this.$nextTick(function () {
+            //     markdownParser.SaveMarkdownFile('test.md', this.wholeData)
+            // });
+            this.$refs.tree.append(newChild, this.$refs.tree.root)
+            markdownParser.SaveMarkdownFile('test.md', this.wholeData)
         },
         addTodo(node) {
             const newChild = { id: id++, label: 'new todo...', progress: 0, finished: false, children: [] };
