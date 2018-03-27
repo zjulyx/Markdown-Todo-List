@@ -4,11 +4,11 @@
             <el-header style="text-align: center;">
                 <el-tag type="danger" hit>
                     <i class="el-icon-edit"></i>
-                    TodoList
+                    {{wholeData.title}}
                 </el-tag>
             </el-header>
             <el-main style="width: 100%">
-                <el-tree :data="wholeData[curDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" style="width: 100%">
+                <el-tree :data="wholeData[formatedCurDate]||[]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" style="width: 100%">
                     <span slot-scope="{ node, data }">
                         <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" @keyup.esc.native="cancelEdit(node)" size="mini">
                             <el-container slot="append">
@@ -71,7 +71,7 @@ var filters = {
     }
 }
 
-let id = 1000
+let id
 
 let calNodeProgress = function (node) {
     let progressSum = 0
@@ -83,9 +83,11 @@ let calNodeProgress = function (node) {
 }
 
 let updateCheckStatus = function (node) {
+    // console.log(node)
     if (!node) {
         return
     }
+    // console.log(node.data.progress)
     if (node.data.progress === constants.MAXPROGRESS) {
         node.checked = true
         node.indeterminate = false
@@ -105,12 +107,11 @@ export default {
             newTodo: '',
             editedTodo: null,
             visibility: 'all',
-            curDate: util.FormatDateTime(),
+            curDate: new Date(),
             MAXPROGRESS: constants.MAXPROGRESS,
             pickerOptions: {
                 disabledDate: time => {
-                    let thisDate = util.FormatDateTime(time)
-                    return time.getTime() > Date.now() || (!(thisDate in this.wholeData));
+                    return time.getTime() > Date.now();
                 },
                 shortcuts: [{
                     text: 'Today',
@@ -139,8 +140,19 @@ export default {
     watch: {
         wholeData: {
             handler: function (newWholeData) {
-                console.log(newWholeData)
-                // markdownParser.SaveMarkdownFile('test.md', newWholeData)
+                // console.log(newWholeData)
+                this.$nextTick(function () {
+                    markdownParser.SaveMarkdownFile('test.md', newWholeData)
+                })
+            },
+            deep: true
+        },
+        curDate: {
+            handler: function (newCurDate) {
+                // first make sure tree is loaded
+                this.$nextTick(function () {
+                    this.updateCheckStatusAtFirst(util.FormatDateTime(newCurDate))
+                })
             },
             deep: true
         }
@@ -149,10 +161,11 @@ export default {
     mounted() {
         this.$nextTick(function () {
             markdownParser.LoadMarkdownFile('test.md', res => {
-                this.wholeData = res
-                // markdownParser.SaveMarkdownFile('res.md', res)
                 console.log(res)
-                updateCheckStatus(this.$refs.tree.getNode(this.wholeData[this.curDate][0]))
+                this.wholeData = res
+                id = markdownParser.curId
+                // markdownParser.SaveMarkdownFile('res.md', res)
+                this.updateCheckStatusAtFirst(this.formatedCurDate)
             })
         });
     },
@@ -161,6 +174,9 @@ export default {
     //     markdownParser.SaveMarkdownFile('res.md', this.wholeData)
     // },
     computed: {
+        formatedCurDate() {
+            return util.FormatDateTime(this.curDate)
+        },
         filteredTodos: function () {
             return filters[this.visibility](this.wholeData)
         },
@@ -186,7 +202,15 @@ export default {
     },
 
     methods: {
+        updateCheckStatusAtFirst(formatedCurDate) {
+            if (this.wholeData[formatedCurDate]) {
+                for (let rootData of this.wholeData[formatedCurDate]) {
+                    updateCheckStatus(this.$refs.tree.getNode(rootData))
+                }
+            }
+        },
         handleCheckChange(data, checked, subchecked) {
+            // console.log('handleCheckChange')
             // console.log(data)
             // console.log(checked)
             // console.log(subchecked)
@@ -205,6 +229,7 @@ export default {
             // console.log(`updateProgress:`)
             // console.log(node)
             node.data.progress = newProgress
+            node.data.finished = (newProgress === constants.MAXPROGRESS)
             if (newProgress === constants.MAXPROGRESS) {
                 node.checked = true
                 node.indeterminate = false
@@ -225,12 +250,15 @@ export default {
             return util.ConvertProgressToDisplay(val)
         },
         addRootTodo(newTodo) {
-            const newChild = { id: id++, label: newTodo, progress: 0, children: [] };
-
-            this.wholeData[this.curDate].push(newChild)
+            const newChild = { id: id++, label: newTodo, progress: 0, finished: false, children: [] };
+            // console.log(this.formatedCurDate)
+            if (!(this.formatedCurDate in this.wholeData)) {
+                this.wholeData[this.formatedCurDate] = []
+            }
+            this.wholeData[this.formatedCurDate].push(newChild)
         },
         addTodo(node) {
-            const newChild = { id: id++, label: 'test', progress: 0, children: [] };
+            const newChild = { id: id++, label: 'test', progress: 0, finished: false, children: [] };
             this.$refs.tree.append(newChild, node)
             this.updateProgress(calNodeProgress(node), node)
         },

@@ -4,7 +4,7 @@ import readline from 'readline'
 import * as constants from './constants'
 import * as util from './util'
 
-let curId = 0
+export let curId = 1
 
 function convertEachDayArrToMarkDown(arr, preBlank = '') {
     let res = ''
@@ -17,24 +17,37 @@ function convertEachDayArrToMarkDown(arr, preBlank = '') {
 }
 
 function convertObjToMarkDown(obj) {
+    console.log(obj)
     let res = `# ${obj.title}\r\n\r\n`
-    delete obj.title
     // console.log(obj)
     let keyDict = Object.keys(obj).sort((a, b) => { return new Date(a) - new Date(b) })
     for (let curDate of keyDict) {
-        res += `## ${curDate}\r\n\r\n`
-        res += convertEachDayArrToMarkDown(obj[curDate])
+        if (curDate !== 'title') {
+            res += `## ${curDate}\r\n\r\n`
+            res += convertEachDayArrToMarkDown(obj[curDate])
+        }
     }
     return res
 }
 
 function parseTodoItem(line) {
-    let arr = /[-|*]\s*\[(.*)\]\s*(.*)\(?(.*)%?\)?/.exec(line)
+    let arr = /[-|*]\s*\[(.*)\]\s*(.*)\((.*)%\)/.exec(line)
+    if (!arr) {
+        // no progress value
+        arr = /[-|*]\s*\[(.*)\]\s*(.*)/.exec(line)
+    }
     let finished = arr[1].trim() === 'x'
     let label = arr[2].trim()
-    let progress = util.ConvertProgressToInternal(arr[3])
+    // console.log(label)
+    let progress = arr.length >= 4 ? util.ConvertProgressToInternal(arr[3]) : NaN
     if (isNaN(progress)) {
+        // if not defined progress, use finished as standard
         progress = finished ? constants.MAXPROGRESS : 0
+    } else if (progress === constants.MAXPROGRESS) {
+        // if has defined progress, use progress as standard
+        finished = true
+    } else {
+        finished = false
     }
     return {
         id: curId++,
