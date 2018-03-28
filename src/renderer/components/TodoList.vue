@@ -8,7 +8,9 @@
                 </el-tag>
             </el-header>
             <el-main style="width: 100%">
-                <el-tree :data="wholeData[curDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" style="width: 100%">
+                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="filterText" v-if="wholeData[curDate]!==[]">
+                </el-input>
+                <el-tree :data="wholeData[curDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
                     <span slot-scope="{ node, data }">
                         <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" @keyup.esc.native="cancelEdit(node)" size="mini">
                             <el-container slot="append">
@@ -106,6 +108,7 @@ export default {
     name: "todo-list",
     data() {
         return {
+            filterText: '',
             wholeData: {},
             newTodo: '',
             editedTodo: null,
@@ -152,6 +155,9 @@ export default {
         //     },
         //     deep: true
         // },
+        filterText(val) {
+            this.$refs.tree.filter(val);
+        },
         curDate: {
             handler: function (newCurDate) {
                 // first make sure tree is loaded
@@ -222,6 +228,10 @@ export default {
     },
 
     methods: {
+        filterNode(value, data) {
+            if (!value) return true;
+            return data.label.indexOf(value) !== -1;
+        },
         updateCheckStatusAtFirst(formatedCurDate) {
             if (formatedCurDate in this.wholeData) {
                 for (let rootData of this.wholeData[formatedCurDate]) {
