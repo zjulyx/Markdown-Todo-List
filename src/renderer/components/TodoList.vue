@@ -29,7 +29,7 @@
                 </el-date-picker>
             </el-main>
             <el-footer>
-                <el-input placeholder="Add new Todo" v-model="newTodo" @change="addRootTodo(newTodo)" clearable>
+                <el-input placeholder="Add new Todo" v-model="newTodo" @keyup.enter.native="addRootTodo(newTodo)" clearable>
                 </el-input>
             </el-footer>
         </el-container>
@@ -322,10 +322,10 @@ export default {
 
         doneEdit: function (newval, node, data) {
             // console.log(newval)
-            newval = newval.trim()
             if (!newval) {
                 this.removeTodo(node)
             }
+            newval = newval.trim()
             data.label = newval
         },
 
