@@ -97,10 +97,21 @@ export default {
                         picker.$emit('pick', date);
                     }
                 }, {
-                    text: 'One Week Ago',
+                    text: 'A Week Ago',
                     onClick(picker) {
                         const date = new Date();
                         date.setTime(date.getTime() - 3600 * 1000 * 24 * 7);
+                        picker.$emit('pick', date);
+                    }
+                }, {
+                    text: 'Copy To Today',
+                    onClick: picker => {
+                        const date = new Date();
+                        let today = util.FormatDateTime(date)
+                        if (today !== this.curDate) {
+                            this.wholeData[today] = this.wholeData[this.curDate]
+                            markdownParser.SaveMarkdownFile('test.md', this.wholeData)
+                        }
                         picker.$emit('pick', date);
                     }
                 }]
