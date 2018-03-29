@@ -17,9 +17,7 @@ function convertEachDayArrToMarkDown(arr, preBlank = '') {
 }
 
 function convertObjToMarkDown(obj) {
-    console.log(obj)
     let res = `# ${obj.title}\r\n\r\n`
-    // console.log(obj)
     let keyDict = Object.keys(obj).sort((a, b) => { return new Date(a) - new Date(b) })
     for (let [index, curDate] of keyDict.entries()) {
         if (curDate !== 'title') {
@@ -41,7 +39,6 @@ function parseTodoItem(line) {
     }
     let finished = arr[1].trim() === 'x'
     let label = arr[2].trim()
-    // console.log(label)
     let progress = arr.length >= 4 ? util.ConvertProgressToInternal(arr[3]) : NaN
     if (isNaN(progress)) {
         // if not defined progress, use finished as standard
