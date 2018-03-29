@@ -12,7 +12,7 @@
                 </el-input>
                 <el-tree :data="wholeData[curDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
                     <span slot-scope="{ node, data }">
-                        <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" @keyup.esc.native="cancelEdit(node)" size="mini">
+                        <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" size="mini">
                             <el-container slot="append">
                                 <el-tooltip :content="showProgress(data.progress)" placement="top">
                                     <el-rate size="mini" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{updateProgress(val,node)}" :disabled="!node.isLeaf" disabled-void-color="#C6D1DE" disabled-void-icon-class="el-icon-star-off"></el-rate>
@@ -20,7 +20,7 @@
                             </el-container>
                         </el-input>
                         <span>
-                            <el-button type="primary" icon="el-icon-circle-plus" @click="() => addTodo(node)" size="mini"></el-button>
+                            <el-button type="primary" icon="el-icon-circle-plus" @click="() => addTodo({node:node})" size="mini"></el-button>
                             <el-button type="danger" icon="el-icon-delete" @click="() => removeTodo(node, data)" size="mini"></el-button>
                         </span>
                     </span>
@@ -29,7 +29,7 @@
                 </el-date-picker>
             </el-main>
             <el-footer>
-                <el-input placeholder="Add new Todo" v-model="newTodo" @keyup.enter.native="addRootTodo(newTodo)" clearable>
+                <el-input placeholder="Add new Todo" v-model="newTodo" @keyup.enter.native="addTodo({newTodo:newTodo})" clearable>
                 </el-input>
             </el-footer>
         </el-container>
@@ -40,38 +40,6 @@
 import * as constants from "../../utils/constants";
 import * as markdownParser from "../../utils/markdownParser";
 import * as util from "../../utils/util";
-
-var STORAGE_KEY = 'todos-vuejs-2.0'
-var todoStorage = {
-    fetch: function () {
-        var todos = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-        todos.forEach(function (todo, index) {
-            todo.id = index
-        })
-        todoStorage.uid = todos.length
-        return todos
-    },
-    save: function (todos) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(todos))
-    }
-}
-
-// visibility filters
-var filters = {
-    all: function (todos) {
-        return todos
-    },
-    active: function (todos) {
-        return todos.filter(function (todo) {
-            return todo.progress !== constants.MAXPROGRESS
-        })
-    },
-    completed: function (todos) {
-        return todos.filter(function (todo) {
-            return todo.progress === constants.MAXPROGRESS
-        })
-    }
-}
 
 let id
 
@@ -88,11 +56,10 @@ let calNodeProgress = function (node) {
 }
 
 let updateCheckStatus = function (node) {
-    // console.log(node)
     if (!node) {
         return
     }
-    // console.log(node.data.progress)
+
     if (node.data.progress === constants.MAXPROGRESS) {
         node.checked = true
         node.indeterminate = false
@@ -111,8 +78,6 @@ export default {
             filterText: '',
             wholeData: {},
             newTodo: '',
-            editedTodo: null,
-            visibility: 'all',
             curDate: util.FormatDateTime(new Date()),
             MAXPROGRESS: constants.MAXPROGRESS,
             pickerOptions: {
@@ -142,110 +107,50 @@ export default {
             }
         };
     },
-
     watch: {
-        // curTodoByDate: {
-        //     handler: function (newWholeData) {
-        //         // console.log(newWholeData)
-        //         console.log('wholeData changed')
-        //         // this.$nextTick(function () {
-        //         // this.updateCheckStatusAtFirst(this.formatedCurDate)
-        //         markdownParser.SaveMarkdownFile('test.md', this.wholeData)
-        //         // })
-        //     },
-        //     deep: true
-        // },
         filterText(val) {
             this.$refs.tree.filter(val);
         },
         curDate: {
             handler: function (newCurDate) {
                 // first make sure tree is loaded
-                console.log('CurDate changed')
-                // let formatedCurDate = util.FormatDateTime(newCurDate)
                 if (!(newCurDate in this.wholeData)) {
                     this.wholeData[newCurDate] = []
                     this.$nextTick(function () {
-                        this.updateCheckStatusAtFirst(util.FormatDateTime(newCurDate))
-                        console.log('save data')
-                        console.log(this.wholeData)
+                        this.updateCheckStatusAtFirst(newCurDate)
                         markdownParser.SaveMarkdownFile('test.md', this.wholeData)
                     })
                 }
             }
         }
     },
-
     mounted() {
         this.$nextTick(function () {
             markdownParser.LoadMarkdownFile('test.md', res => {
-                console.log('read file')
-                console.log(res)
                 this.wholeData = res
                 id = markdownParser.curId
                 if (!(this.curDate in this.wholeData)) {
                     this.wholeData[this.curDate] = []
                 }
-                // markdownParser.SaveMarkdownFile('res.md', res)
-                this.updateCheckStatusAtFirst(this.formatedCurDate)
+                this.updateCheckStatusAtFirst(this.curDate)
             })
         });
     },
-
-    // beforeDestroy() {
-    //     markdownParser.SaveMarkdownFile('res.md', this.wholeData)
-    // },
-    computed: {
-        curTodoByDate() {
-            return this.wholeData[this.curDate]
-        },
-        formatedCurDate() {
-            return this.curDate
-            // return util.FormatDateTime(this.curDate)
-        },
-        filteredTodos: function () {
-            return filters[this.visibility](this.wholeData)
-        },
-        remaining: function () {
-            return filters.active(this.wholeData).length
-        },
-        allDone: {
-            get: function () {
-                return this.remaining === 0
-            },
-            set: function (value) {
-                this.wholeData.forEach(function (todo) {
-                    todo.completed = value
-                })
-            }
-        }
-    },
-
-    filters: {
-        pluralize: function (n) {
-            return n === 1 ? 'item' : 'items'
-        }
-    },
-
     methods: {
         filterNode(value, data) {
             if (!value) return true;
             return data.label.indexOf(value) !== -1;
         },
-        updateCheckStatusAtFirst(formatedCurDate) {
-            if (formatedCurDate in this.wholeData) {
-                for (let rootData of this.wholeData[formatedCurDate]) {
+        updateCheckStatusAtFirst(thisDate) {
+            if (thisDate in this.wholeData) {
+                for (let rootData of this.wholeData[thisDate]) {
                     updateCheckStatus(this.$refs.tree.getNode(rootData))
                 }
             } else {
-                this.wholeData[formatedCurDate] = []
+                this.wholeData[thisDate] = []
             }
         },
         handleCheckChange(data, checked, subchecked) {
-            // console.log('handleCheckChange')
-            // console.log(data)
-            // console.log(checked)
-            // console.log(subchecked)
             let node = this.$refs.tree.getNode(data)
             let originProgress = data.progress
             if (checked) {
@@ -258,8 +163,6 @@ export default {
             }
         },
         updateProgress(newProgress, node) {
-            // console.log(`updateProgress:`)
-            // console.log(node)
             node.data.progress = newProgress
             node.data.finished = (newProgress === constants.MAXPROGRESS)
             if (newProgress === constants.MAXPROGRESS) {
@@ -273,8 +176,6 @@ export default {
             }
             let parent = node.parent
             if (!parent) {
-                console.log('save data in updateProgress')
-                console.log(this.wholeData)
                 markdownParser.SaveMarkdownFile('test.md', this.wholeData)
                 return
             }
@@ -284,68 +185,26 @@ export default {
         showProgress(val) {
             return util.ConvertProgressToDisplay(val)
         },
-        addRootTodo(newTodo) {
+        addTodo({ newTodo = 'new todo...', node = this.$refs.tree.root }) {
             const newChild = { id: id++, label: newTodo, progress: 0, finished: false, children: [] };
-            // console.log('addRootTodo')
-            // console.log(this.wholeData)
-            // console.log(this.$refs.tree)
-            if (!(this.formatedCurDate in this.wholeData)) {
-                console.log('not exist')
-                this.wholeData[this.formatedCurDate] = []
+            if (!(this.curDate in this.wholeData)) {
+                this.wholeData[this.curDate] = []
             }
-            // this.$refs.tree.insertAfter(newChild, this.$refs.tree.getNode(1))
-            // this.wholeData[this.formatedCurDate].push(newChild)
-            // this.$refs.tree.data = this.wholeData[this.formatedCurDate]
-            // // markdownParser.SaveMarkdownFile('test.md', this.wholeData)
-            // this.$nextTick(function () {
-            //     markdownParser.SaveMarkdownFile('test.md', this.wholeData)
-            // });
-            this.$refs.tree.append(newChild, this.$refs.tree.root)
-            markdownParser.SaveMarkdownFile('test.md', this.wholeData)
-        },
-        addTodo(node) {
-            const newChild = { id: id++, label: 'new todo...', progress: 0, finished: false, children: [] };
             this.$refs.tree.append(newChild, node)
             this.updateProgress(calNodeProgress(node), node)
         },
-
         removeTodo(node, data) {
             let parent = node.parent;
             this.$refs.tree.remove(node)
             this.updateProgress(calNodeProgress(parent), parent)
         },
-
-        editTodo: function (todo) {
-            this.beforeEditCache = todo.title
-            this.editedTodo = todo
-        },
-
         doneEdit: function (newval, node, data) {
-            // console.log(newval)
             if (!newval) {
                 this.removeTodo(node)
             }
             newval = newval.trim()
             data.label = newval
-        },
-
-        cancelEdit: function (node) {
-            // console.log(node)
-        },
-
-        removeCompleted: function () {
-            this.wholeData = filters.active(this.wholeData)
-        }
-    },
-
-    // a custom directive to wait for the DOM to be updated
-    // before focusing on the input field.
-    // http://vuejs.org/guide/custom-directive.html
-    directives: {
-        'todo-focus': function (el, binding) {
-            if (binding.value) {
-                el.focus()
-            }
+            markdownParser.SaveMarkdownFile('test.md', this.wholeData)
         }
     }
 };
