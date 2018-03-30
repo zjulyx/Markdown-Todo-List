@@ -4,10 +4,12 @@
             <el-tab-pane :key="index" v-for="(item,index) in tabs" :label="item.fileName" :name="index.toString()">
                 <!-- <el-container>
                     <el-main style="width: 100%"> -->
-                <el-tag type="danger" hit>
-                    <i class="el-icon-edit"></i>
-                    {{item.content.title}}
+                <el-tag type="danger" hit @dblclick.native="handleTitleEdit" v-if="titleNotEditing">
+                    <i class="el-icon-tickets"></i>
+                    {{item.content.title}} (Double click to edit)
                 </el-tag>
+                <el-input prefix-icon="el-icon-edit" :value="item.content.title" @change="val=>titleEdited(val)" v-else>
+                </el-input>
                 <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="filterText" v-if="item.content[curDate]!==[]">
                 </el-input>
                 <el-tree :data="item.content[curDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
@@ -80,6 +82,7 @@ export default {
             tabs: [],
             curTab: '0',
             newTodo: '',
+            titleNotEditing: true,
             curDate: util.FormatDateTime(new Date()),
             MAXPROGRESS: constants.MAXPROGRESS,
             pickerOptions: {
@@ -166,11 +169,23 @@ export default {
         });
     },
     methods: {
+        SaveCurrentFile() {
+            console.log('Save')
+        },
+        handleTitleEdit() {
+            console.log('handleTitleEdit')
+            this.titleNotEditing = false
+        },
+        titleEdited(newTitle) {
+            this.titleNotEditing = true
+            this.tabs[this.curTab].content.title = newTitle
+            markdownParser.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
+        },
         handleTabsEdit(targetName, action) {
             if (action === 'add') {
                 this.tabs.push({
-                    title: 'New Tab',
-                    content: 'New Tab content'
+                    fileName: 'New Todo File',
+                    content: { title: 'New Todo' }
                 });
                 this.curTab = (this.tabs.length - 1).toString();
             }
