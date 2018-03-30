@@ -1,16 +1,16 @@
 <template>
     <div>
-        <el-container>
-            <el-header style="text-align: center;">
+        <el-tabs v-model="curTab" type="card" editable @edit="handleTabsEdit">
+            <el-tab-pane :key="index" v-for="(item,index) in tabs" :label="item.fileName" :name="index.toString()">
+                <!-- <el-container>
+                    <el-main style="width: 100%"> -->
                 <el-tag type="danger" hit>
                     <i class="el-icon-edit"></i>
-                    {{wholeData.title}}
+                    {{item.content.title}}
                 </el-tag>
-            </el-header>
-            <el-main style="width: 100%">
-                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="filterText" v-if="wholeData[curDate]!==[]">
+                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="filterText" v-if="item.content[curDate]!==[]">
                 </el-input>
-                <el-tree :data="wholeData[curDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
+                <el-tree :data="item.content[curDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
                     <span slot-scope="{ node, data }">
                         <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" size="mini">
                             <el-container slot="append">
@@ -27,12 +27,12 @@
                 </el-tree>
                 <el-date-picker v-model="curDate" align="right" type="date" placeholder="Choose Date" :picker-options="pickerOptions" value-format="yyyy-MM-dd">
                 </el-date-picker>
-            </el-main>
-            <el-footer>
                 <el-input placeholder="Add new Todo" v-model="newTodo" @keyup.enter.native="addTodo({newTodo:newTodo})" clearable>
                 </el-input>
-            </el-footer>
-        </el-container>
+                <!-- </el-footer>
+                </el-container> -->
+            </el-tab-pane>
+        </el-tabs>
     </div>
 </template>
 
@@ -40,6 +40,7 @@
 import * as constants from "../../utils/constants";
 import * as markdownParser from "../../utils/markdownParser";
 import * as util from "../../utils/util";
+import { setImmediate } from 'timers';
 
 let id
 
@@ -76,7 +77,8 @@ export default {
     data() {
         return {
             filterText: '',
-            wholeData: {},
+            tabs: [],
+            curTab: '0',
             newTodo: '',
             curDate: util.FormatDateTime(new Date()),
             MAXPROGRESS: constants.MAXPROGRESS,
@@ -109,8 +111,8 @@ export default {
                         const date = new Date();
                         let today = util.FormatDateTime(date)
                         if (today !== this.curDate) {
-                            this.wholeData[today] = this.wholeData[this.curDate]
-                            markdownParser.SaveMarkdownFile('test.md', this.wholeData)
+                            this.tabs[this.curTab].content[today] = this.tabs[this.curTab].content[this.curDate]
+                            markdownParser.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
                         }
                         picker.$emit('pick', date);
                     }
@@ -120,49 +122,86 @@ export default {
     },
     watch: {
         filterText(val) {
-            this.$refs.tree.filter(val);
+            this.$refs.tree[this.curTab].filter(val);
         },
+        // tabs: {
+        //     handler(newVal) {
+        //         this.updateCheckStatusAtFirst(this.curDate)
+        //     },
+        //     deep: true
+        // },
         curDate: {
             handler: function (newCurDate) {
                 // first make sure tree is loaded
-                if (!(newCurDate in this.wholeData)) {
-                    this.wholeData[newCurDate] = []
+                if (!(newCurDate in this.tabs[this.curTab].content)) {
+                    this.tabs[this.curTab].content[newCurDate] = []
                     this.$nextTick(function () {
                         this.updateCheckStatusAtFirst(newCurDate)
-                        markdownParser.SaveMarkdownFile('test.md', this.wholeData)
+                        markdownParser.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
                     })
                 }
             }
         }
     },
+    // computed: {
+    //     wholeData() {
+    //         return this.tabs[this.curTab].content
+    //     }
+    // },
     mounted() {
         this.$nextTick(function () {
+            // this.tabs[this.curTab].content = {}
             markdownParser.LoadMarkdownFile('test.md', res => {
-                this.wholeData = res
+                console.log('mounted')
+                console.log(this.curTab)
+                this.tabs.push({ content: res })
+                console.log(this.tabs)
                 id = markdownParser.curId
-                if (!(this.curDate in this.wholeData)) {
-                    this.wholeData[this.curDate] = []
+                if (!(this.curDate in this.tabs[this.curTab].content)) {
+                    this.tabs[this.curTab].content[this.curDate] = []
                 }
-                this.updateCheckStatusAtFirst(this.curDate)
+                this.tabs[this.curTab].fileName = 'test.md'
+                setImmediate(this.updateCheckStatusAtFirst, this.curDate)
             })
         });
     },
     methods: {
+        handleTabsEdit(targetName, action) {
+            if (action === 'add') {
+                this.tabs.push({
+                    title: 'New Tab',
+                    content: 'New Tab content'
+                });
+                this.curTab = (this.tabs.length - 1).toString();
+            }
+            if (action === 'remove') {
+                console.log(targetName)
+                console.log(this.curTab)
+                this.tabs.splice(parseInt(targetName), 1)
+                if (this.curTab >= this.tabs.length - 1) {
+                    this.curTab = (this.tabs.length - 1).toString();
+                }
+                console.log(this.tabs)
+                console.log(targetName)
+                // this.editableTabs = tabs.filter(tab => tab.name !== targetName);
+            }
+        },
         filterNode(value, data) {
             if (!value) return true;
             return data.label.indexOf(value) !== -1;
         },
         updateCheckStatusAtFirst(thisDate) {
-            if (thisDate in this.wholeData) {
-                for (let rootData of this.wholeData[thisDate]) {
-                    updateCheckStatus(this.$refs.tree.getNode(rootData))
+            console.log(this.$refs)
+            if (thisDate in this.tabs[this.curTab].content) {
+                for (let rootData of this.tabs[this.curTab].content[thisDate]) {
+                    updateCheckStatus(this.$refs.tree[this.curTab].getNode(rootData))
                 }
             } else {
-                this.wholeData[thisDate] = []
+                this.tabs[this.curTab].content[thisDate] = []
             }
         },
         handleCheckChange(data, checked, subchecked) {
-            let node = this.$refs.tree.getNode(data)
+            let node = this.$refs.tree[this.curTab].getNode(data)
             let originProgress = data.progress
             if (checked) {
                 data.progress = constants.MAXPROGRESS
@@ -187,7 +226,7 @@ export default {
             }
             let parent = node.parent
             if (!parent) {
-                markdownParser.SaveMarkdownFile('test.md', this.wholeData)
+                markdownParser.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
                 return
             }
 
@@ -196,17 +235,18 @@ export default {
         showProgress(val) {
             return util.ConvertProgressToDisplay(val)
         },
-        addTodo({ newTodo = 'new todo...', node = this.$refs.tree.root }) {
+        addTodo({ newTodo = 'new todo...', node = this.$refs.tree[this.curTab].root }) {
             const newChild = { id: id++, label: newTodo, progress: 0, finished: false, children: [] };
-            if (!(this.curDate in this.wholeData)) {
-                this.wholeData[this.curDate] = []
+            if (!(this.curDate in this.tabs[this.curTab].content)) {
+                this.tabs[this.curTab].content[this.curDate] = []
             }
-            this.$refs.tree.append(newChild, node)
+            console.log(this.$refs.tree[this.curTab][this.curTab])
+            this.$refs.tree[this.curTab].append(newChild, node)
             this.updateProgress(calNodeProgress(node), node)
         },
         removeTodo(node, data) {
             let parent = node.parent;
-            this.$refs.tree.remove(node)
+            this.$refs.tree[this.curTab].remove(node)
             this.updateProgress(calNodeProgress(parent), parent)
         },
         doneEdit: function (newval, node, data) {
@@ -215,7 +255,7 @@ export default {
             }
             newval = newval.trim()
             data.label = newval
-            markdownParser.SaveMarkdownFile('test.md', this.wholeData)
+            markdownParser.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
         }
     }
 };
