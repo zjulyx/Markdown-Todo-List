@@ -8,7 +8,7 @@
                     <i class="el-icon-tickets"></i>
                     {{item.Content.title}} (Double click to edit)
                 </el-tag>
-                <el-input prefix-icon="el-icon-edit" :value="item.Content.title" @change="val=>titleEdited(val)" v-else>
+                <el-input prefix-icon="el-icon-edit" :value="item.Content.title" @blur="event=>titleEdited(event.target.value)" v-else>
                 </el-input>
                 <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="filterText" v-if="item.Content[curDate]!==[]">
                 </el-input>
@@ -44,7 +44,6 @@ import * as fileOperation from "../../utils/fileOperation";
 import * as markdownParser from "../../utils/markdownParser";
 import * as util from "../../utils/util";
 import * as vux from "../store/vuxOperation";
-// import { setImmediate } from 'timers';
 
 let id
 
@@ -114,7 +113,6 @@ export default {
                         if (today !== this.curDate) {
                             this.tabs[this.curTab][constants.Content][today] = this.tabs[this.curTab][constants.Content][this.curDate]
                             this.SaveCurrentFile()
-                            // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab][constants.Content])
                         }
                         picker.$emit('pick', date);
                     }
@@ -143,7 +141,6 @@ export default {
                     this.$nextTick(function () {
                         this.updateCheckStatusAtFirst(newCurDate)
                         this.SaveCurrentFile()
-                        // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab][constants.Content])
                     })
                 }
             }
@@ -170,13 +167,12 @@ export default {
             this.titleNotEditing = true
             this.tabs[this.curTab][constants.Content].title = newTitle
             this.SaveCurrentFile()
-            // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab][constants.Content])
         },
         handleTabsEdit(targetName, action) {
             if (action === 'add') {
                 this.tabs.push({
-                    fileName: 'New Todo File',
-                    content: { title: 'New Todo' }
+                    [constants.FileName]: 'New Todo File',
+                    [constants.Content]: { title: 'New Todo' }
                 });
                 this.curTab = (this.tabs.length - 1).toString();
             }
@@ -227,7 +223,6 @@ export default {
             let parent = node.parent
             if (!parent) {
                 this.SaveCurrentFile()
-                // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab][constants.Content])
                 return
             }
 
@@ -256,7 +251,6 @@ export default {
             newval = newval.trim()
             data.label = newval
             this.SaveCurrentFile()
-            // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab][constants.Content])
         }
     }
 };
