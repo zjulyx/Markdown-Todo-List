@@ -6,32 +6,24 @@ import {
     remote
 } from 'electron'
 
-let initTabsData = JSON.parse(JSON.stringify(remote.getGlobal('tabsData')))
+let initSharedData = JSON.parse(JSON.stringify(remote.getGlobal('sharedData')))
 
 Vue.use(Vuex)
 
 export default new Vuex.Store({
     state: {
         [constants.FilterText]: '',
-        [constants.TabsData]: initTabsData,
-        [constants.CurTab]: '0',
+        [constants.TabsData]: initSharedData[constants.TabsData],
+        [constants.CurTab]: initSharedData[constants.CurTab],
+        [constants.Files]: initSharedData[constants.Files],
         [constants.NewTodo]: '',
         [constants.TitleNotEditing]: true,
         [constants.CurDate]: util.FormatDateTime(new Date())
     },
     mutations: {
         SetData(state, payload) {
-            // let newData = payload.newData
-            // let keys = payload.keys
-            // let curData = state
-            // for (let key of keys) {
-            //     console.log(curData)
-            //     curData = curData[key]
-            // }
-            // curData = newData
             let newData = payload.newData
             state[payload.dataName] = newData
         }
     }
-    // strict: process.env.NODE_ENV !== 'production'
 })

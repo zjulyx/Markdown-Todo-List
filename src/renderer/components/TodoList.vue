@@ -1,18 +1,18 @@
 <template>
     <div>
         <el-tabs v-model="curTab" type="card" editable @edit="handleTabsEdit">
-            <el-tab-pane :key="index" v-for="(item,index) in tabs" :label="item.fileName" :name="index.toString()">
+            <el-tab-pane :key="index" v-for="(item,index) in tabs" :label="item.FileName" :name="index.toString()">
                 <!-- <el-container>
                     <el-main style="width: 100%"> -->
                 <el-tag type="danger" hit @dblclick.native="handleTitleEdit" v-if="titleNotEditing">
                     <i class="el-icon-tickets"></i>
-                    {{item.content.title}} (Double click to edit)
+                    {{item.Content.title}} (Double click to edit)
                 </el-tag>
-                <el-input prefix-icon="el-icon-edit" :value="item.content.title" @change="val=>titleEdited(val)" v-else>
+                <el-input prefix-icon="el-icon-edit" :value="item.Content.title" @change="val=>titleEdited(val)" v-else>
                 </el-input>
-                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="filterText" v-if="item.content[curDate]!==[]">
+                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="filterText" v-if="item.Content[curDate]!==[]">
                 </el-input>
-                <el-tree :data="item.content[curDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
+                <el-tree :data="item.Content[curDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
                     <span slot-scope="{ node, data }">
                         <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" size="mini">
                             <el-container slot="append">
@@ -81,6 +81,8 @@ export default {
     data() {
         return {
             MAXPROGRESS: constants.MAXPROGRESS,
+            Content: constants.Content,
+            FileName: constants.FileName,
             pickerOptions: {
                 disabledDate: time => {
                     return time.getTime() > Date.now();
@@ -110,9 +112,9 @@ export default {
                         const date = new Date();
                         let today = util.FormatDateTime(date)
                         if (today !== this.curDate) {
-                            this.tabs[this.curTab].content[today] = this.tabs[this.curTab].content[this.curDate]
+                            this.tabs[this.curTab][constants.Content][today] = this.tabs[this.curTab][constants.Content][this.curDate]
                             this.SaveCurrentFile()
-                            // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
+                            // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab][constants.Content])
                         }
                         picker.$emit('pick', date);
                     }
@@ -126,7 +128,8 @@ export default {
         curTab: vux.GenerateComputed(constants.CurTab),
         newTodo: vux.GenerateComputed(constants.NewTodo),
         titleNotEditing: vux.GenerateComputed(constants.TitleNotEditing),
-        curDate: vux.GenerateComputed(constants.CurDate)
+        curDate: vux.GenerateComputed(constants.CurDate),
+        files: vux.GenerateComputed(constants.Files)
     },
     watch: {
         filterText(val) {
@@ -135,12 +138,12 @@ export default {
         curDate: {
             handler: function (newCurDate) {
                 // first make sure tree is loaded
-                if (!(newCurDate in this.tabs[this.curTab].content)) {
-                    this.tabs[this.curTab].content[newCurDate] = []
+                if (!(newCurDate in this.tabs[this.curTab][constants.Content])) {
+                    this.tabs[this.curTab][constants.Content][newCurDate] = []
                     this.$nextTick(function () {
                         this.updateCheckStatusAtFirst(newCurDate)
                         this.SaveCurrentFile()
-                        // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
+                        // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab][constants.Content])
                     })
                 }
             }
@@ -154,16 +157,20 @@ export default {
     },
     methods: {
         SaveCurrentFile() {
-            fileOperation.SaveMarkdownFile(this.tabs[this.curTab].fileName, this.tabs[this.curTab].content)
+            fileOperation.SaveMarkdownFile(this.tabs[this.curTab][constants.FileName], this.tabs[this.curTab][constants.Content])
+            fileOperation.SaveUserDataFile(constants.UserDataFile, {
+                [constants.Files]: this.files,
+                [constants.CurTab]: this.curTab
+            })
         },
         handleTitleEdit() {
             this.titleNotEditing = false
         },
         titleEdited(newTitle) {
             this.titleNotEditing = true
-            this.tabs[this.curTab].content.title = newTitle
+            this.tabs[this.curTab][constants.Content].title = newTitle
             this.SaveCurrentFile()
-            // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
+            // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab][constants.Content])
         },
         handleTabsEdit(targetName, action) {
             if (action === 'add') {
@@ -185,12 +192,12 @@ export default {
             return data.label.indexOf(value) !== -1;
         },
         updateCheckStatusAtFirst(thisDate) {
-            if (thisDate in this.tabs[this.curTab].content) {
-                for (let rootData of this.tabs[this.curTab].content[thisDate]) {
+            if (thisDate in this.tabs[this.curTab][constants.Content]) {
+                for (let rootData of this.tabs[this.curTab][constants.Content][thisDate]) {
                     updateCheckStatus(this.$refs.tree[this.curTab].getNode(rootData))
                 }
             } else {
-                this.tabs[this.curTab].content[thisDate] = []
+                this.tabs[this.curTab][constants.Content][thisDate] = []
             }
         },
         handleCheckChange(data, checked, subchecked) {
@@ -220,7 +227,7 @@ export default {
             let parent = node.parent
             if (!parent) {
                 this.SaveCurrentFile()
-                // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
+                // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab][constants.Content])
                 return
             }
 
@@ -231,8 +238,8 @@ export default {
         },
         addTodo({ newTodo = 'new todo...', node = this.$refs.tree[this.curTab].root }) {
             const newChild = { id: id++, label: newTodo, progress: 0, finished: false, children: [] };
-            if (!(this.curDate in this.tabs[this.curTab].content)) {
-                this.tabs[this.curTab].content[this.curDate] = []
+            if (!(this.curDate in this.tabs[this.curTab][constants.Content])) {
+                this.tabs[this.curTab][constants.Content][this.curDate] = []
             }
             this.$refs.tree[this.curTab].append(newChild, node)
             this.updateProgress(calNodeProgress(node), node)
@@ -249,7 +256,7 @@ export default {
             newval = newval.trim()
             data.label = newval
             this.SaveCurrentFile()
-            // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
+            // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab][constants.Content])
         }
     }
 };

@@ -123,4 +123,4 @@
     - [ ] new todo... (0.00%)
     - [x] new todo... (100.00%)
 - [x] sdfsdfsddfgdg (100.00%)
-- [ ] sdfsdf (0.00%)
+- [x] sdfsdf (100.00%)
