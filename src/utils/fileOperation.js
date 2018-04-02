@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { dialog } from 'electron'
 import * as markdownParser from './markdownParser'
 import * as constants from '../model/constants';
 
@@ -25,6 +26,17 @@ function handleFileNotExist(file, callback, initData) {
             }
             callback(initData)
         })
+    })
+}
+
+export function OpenMarkdownFile(mainWindow) {
+    dialog.showOpenDialog({
+        properties: ['openFile', 'multiSelections'],
+        filters: [{ name: 'Markdown Files', extensions: ['md'] }, { name: 'All Files', extensions: ['*'] }]
+    }, (files) => {
+        if (files) {
+            mainWindow.webContents.send(constants.FileOpenedChannel, files)
+        }
     })
 }
 

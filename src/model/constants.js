@@ -13,3 +13,5 @@ export const TitleNotEditing = 'TitleNotEditing'
 export const Content = 'Content'
 export const FileName = 'FileName'
 export const Files = 'Files'
+
+export const FileOpenedChannel = "FileOpenedChannel"
