@@ -1,21 +1,5 @@
-import fs from 'fs'
-import path from 'path'
 import moment from 'moment'
-import * as constants from './constants'
-
-export function MakeDirs(dirname, callback) {
-    fs.access(dirname, err => {
-        if (!err) {
-            if (callback) {
-                callback()
-            }
-        } else {
-            MakeDirs(path.dirname(dirname), function () {
-                fs.mkdir(dirname, callback)
-            })
-        }
-    })
-}
+import * as constants from '../model/constants'
 
 export function ConvertProgressToDisplay(val) {
     return `${(val * 100 / constants.MAXPROGRESS).toFixed(2)}%`

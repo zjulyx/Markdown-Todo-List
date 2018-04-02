@@ -1,6 +1,9 @@
 'use strict'
 
 import { app, BrowserWindow } from 'electron'
+import * as fileOperation from '../utils/fileOperation'
+
+global.tabsData = []
 
 /**
  * Set `__static` path to static files in production
@@ -36,7 +39,13 @@ function createWindow() {
     // })
 }
 
-app.on('ready', createWindow)
+app.on('ready', () => {
+    createWindow()
+    fileOperation.LoadMarkdownFile('test.md', res => {
+        global.tabsData.push({ content: res })
+        global.tabsData[0].fileName = 'test.md'
+    })
+})
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {

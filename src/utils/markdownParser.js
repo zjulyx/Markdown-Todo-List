@@ -1,7 +1,6 @@
 import fs from 'fs'
-import path from 'path'
 import readline from 'readline'
-import * as constants from './constants'
+import * as constants from '../model/constants'
 import * as util from './util'
 
 export let curId = 1
@@ -16,7 +15,7 @@ function convertEachDayArrToMarkDown(arr, preBlank = '') {
     return res
 }
 
-function convertObjToMarkDown(obj) {
+export function convertObjToMarkDown(obj) {
     let res = `# ${obj.title}\r\n\r\n`
     let keyDict = Object.keys(obj).sort((a, b) => { return new Date(a) - new Date(b) })
     for (let [index, curDate] of keyDict.entries()) {
@@ -58,7 +57,7 @@ function parseTodoItem(line) {
     }
 }
 
-function convertMarkDownToObj(markdownFile, finishCallback) {
+export function convertMarkDownToObj(markdownFile, finishCallback) {
     let markdownStream = fs.createReadStream(markdownFile);
     let markdown = readline.createInterface({
         input: markdownStream
@@ -109,31 +108,5 @@ function convertMarkDownToObj(markdownFile, finishCallback) {
 
     markdown.on('close', () => {
         finishCallback(res)
-    })
-}
-
-export function LoadMarkdownFile(markdownFile, callback) {
-    fs.access(markdownFile, (err) => {
-        if (err) {
-            util.MakeDirs(path.dirname(markdownFile), () => {
-                fs.writeFile(markdownFile, '', err => {
-                    if (err) {
-                        console.log(err)
-                    }
-                    let res = {}
-                    callback(res)
-                })
-            })
-        } else {
-            convertMarkDownToObj(markdownFile, callback)
-        }
-    })
-}
-
-export function SaveMarkdownFile(markdownFile, obj) {
-    fs.writeFile(markdownFile, convertObjToMarkDown(obj), err => {
-        if (err) {
-            console.log(err)
-        }
     })
 }

@@ -39,10 +39,12 @@
 </template>
 
 <script>
-import * as constants from "../../utils/constants";
+import * as constants from "../../model/constants";
+import * as fileOperation from "../../utils/fileOperation";
 import * as markdownParser from "../../utils/markdownParser";
 import * as util from "../../utils/util";
-import { setImmediate } from 'timers';
+import * as vux from "../store/vuxOperation";
+// import { setImmediate } from 'timers';
 
 let id
 
@@ -78,12 +80,6 @@ export default {
     name: "todo-list",
     data() {
         return {
-            filterText: '',
-            tabs: [],
-            curTab: '0',
-            newTodo: '',
-            titleNotEditing: true,
-            curDate: util.FormatDateTime(new Date()),
             MAXPROGRESS: constants.MAXPROGRESS,
             pickerOptions: {
                 disabledDate: time => {
@@ -115,7 +111,8 @@ export default {
                         let today = util.FormatDateTime(date)
                         if (today !== this.curDate) {
                             this.tabs[this.curTab].content[today] = this.tabs[this.curTab].content[this.curDate]
-                            markdownParser.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
+                            this.SaveCurrentFile()
+                            // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
                         }
                         picker.$emit('pick', date);
                     }
@@ -123,16 +120,18 @@ export default {
             }
         };
     },
+    computed: {
+        filterText: vux.GenerateComputed(constants.FilterText),
+        tabs: vux.GenerateComputed(constants.TabsData, this.SaveCurrentFile),
+        curTab: vux.GenerateComputed(constants.CurTab),
+        newTodo: vux.GenerateComputed(constants.NewTodo),
+        titleNotEditing: vux.GenerateComputed(constants.TitleNotEditing),
+        curDate: vux.GenerateComputed(constants.CurDate)
+    },
     watch: {
         filterText(val) {
             this.$refs.tree[this.curTab].filter(val);
         },
-        // tabs: {
-        //     handler(newVal) {
-        //         this.updateCheckStatusAtFirst(this.curDate)
-        //     },
-        //     deep: true
-        // },
         curDate: {
             handler: function (newCurDate) {
                 // first make sure tree is loaded
@@ -140,46 +139,31 @@ export default {
                     this.tabs[this.curTab].content[newCurDate] = []
                     this.$nextTick(function () {
                         this.updateCheckStatusAtFirst(newCurDate)
-                        markdownParser.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
+                        this.SaveCurrentFile()
+                        // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
                     })
                 }
             }
         }
     },
-    // computed: {
-    //     wholeData() {
-    //         return this.tabs[this.curTab].content
-    //     }
-    // },
     mounted() {
         this.$nextTick(function () {
-            // this.tabs[this.curTab].content = {}
-            markdownParser.LoadMarkdownFile('test.md', res => {
-                console.log('mounted')
-                console.log(this.curTab)
-                this.tabs.push({ content: res })
-                console.log(this.tabs)
-                id = markdownParser.curId
-                if (!(this.curDate in this.tabs[this.curTab].content)) {
-                    this.tabs[this.curTab].content[this.curDate] = []
-                }
-                this.tabs[this.curTab].fileName = 'test.md'
-                setImmediate(this.updateCheckStatusAtFirst, this.curDate)
-            })
+            id = markdownParser.curId
+            this.updateCheckStatusAtFirst(this.curDate)
         });
     },
     methods: {
         SaveCurrentFile() {
-            console.log('Save')
+            fileOperation.SaveMarkdownFile(this.tabs[this.curTab].fileName, this.tabs[this.curTab].content)
         },
         handleTitleEdit() {
-            console.log('handleTitleEdit')
             this.titleNotEditing = false
         },
         titleEdited(newTitle) {
             this.titleNotEditing = true
             this.tabs[this.curTab].content.title = newTitle
-            markdownParser.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
+            this.SaveCurrentFile()
+            // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
         },
         handleTabsEdit(targetName, action) {
             if (action === 'add') {
@@ -190,15 +174,10 @@ export default {
                 this.curTab = (this.tabs.length - 1).toString();
             }
             if (action === 'remove') {
-                console.log(targetName)
-                console.log(this.curTab)
                 this.tabs.splice(parseInt(targetName), 1)
                 if (this.curTab >= this.tabs.length - 1) {
                     this.curTab = (this.tabs.length - 1).toString();
                 }
-                console.log(this.tabs)
-                console.log(targetName)
-                // this.editableTabs = tabs.filter(tab => tab.name !== targetName);
             }
         },
         filterNode(value, data) {
@@ -206,7 +185,6 @@ export default {
             return data.label.indexOf(value) !== -1;
         },
         updateCheckStatusAtFirst(thisDate) {
-            console.log(this.$refs)
             if (thisDate in this.tabs[this.curTab].content) {
                 for (let rootData of this.tabs[this.curTab].content[thisDate]) {
                     updateCheckStatus(this.$refs.tree[this.curTab].getNode(rootData))
@@ -241,7 +219,8 @@ export default {
             }
             let parent = node.parent
             if (!parent) {
-                markdownParser.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
+                this.SaveCurrentFile()
+                // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
                 return
             }
 
@@ -255,7 +234,6 @@ export default {
             if (!(this.curDate in this.tabs[this.curTab].content)) {
                 this.tabs[this.curTab].content[this.curDate] = []
             }
-            console.log(this.$refs.tree[this.curTab][this.curTab])
             this.$refs.tree[this.curTab].append(newChild, node)
             this.updateProgress(calNodeProgress(node), node)
         },
@@ -270,7 +248,8 @@ export default {
             }
             newval = newval.trim()
             data.label = newval
-            markdownParser.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
+            this.SaveCurrentFile()
+            // fileOperation.SaveMarkdownFile('test.md', this.tabs[this.curTab].content)
         }
     }
 };
