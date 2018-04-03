@@ -1,18 +1,16 @@
 <template>
     <div>
-        <el-tabs v-model="curTab" type="card" editable @edit="handleTabsEdit">
-            <el-tab-pane :key="index" v-for="(item,index) in tabs" :label="item.FileName" :name="index.toString()">
-                <!-- <el-container>
-                    <el-main style="width: 100%"> -->
-                <el-tag type="danger" hit @dblclick.native="handleTitleEdit" v-if="titleNotEditing">
+        <el-tabs v-model="CurTab" type="card" editable @edit="handleTabsEdit">
+            <el-tab-pane :key="index" v-for="(item,index) in TabsData" :label="item.FileName" :name="index.toString()">
+                <el-tag type="danger" hit @dblclick.native="handleTitleEdit" v-if="TitleNotEditing">
                     <i class="el-icon-tickets"></i>
-                    {{item.Content.title}} (Double click to edit)
+                    {{item.Content.Title}} (Double click to edit)
                 </el-tag>
-                <el-input prefix-icon="el-icon-edit" :value="item.Content.title" @blur="event=>titleEdited(event.target.value)" v-else>
+                <el-input prefix-icon="el-icon-edit" :value="item.Content.Title" @blur="event=>titleEdited(event.target.value)" @change="val=>titleEdited(val)" v-else>
                 </el-input>
-                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="filterText" v-if="item.Content[curDate]!==[]">
+                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="FilterText" v-if="item.Content[CurDate]!==[]">
                 </el-input>
-                <el-tree :data="item.Content[curDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
+                <el-tree :data="item.Content[CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
                     <span slot-scope="{ node, data }">
                         <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" size="mini">
                             <el-container slot="append">
@@ -27,12 +25,10 @@
                         </span>
                     </span>
                 </el-tree>
-                <el-date-picker v-model="curDate" align="right" type="date" placeholder="Choose Date" :picker-options="pickerOptions" value-format="yyyy-MM-dd">
+                <el-date-picker v-model="CurDate" align="right" type="date" placeholder="Choose Date" :picker-options="pickerOptions" value-format="yyyy-MM-dd">
                 </el-date-picker>
-                <el-input placeholder="Add new Todo" v-model="newTodo" @keyup.enter.native="addTodo({newTodo:newTodo})" clearable>
+                <el-input placeholder="Add new Todo" v-model="NewTodo" @keyup.enter.native="addTodo({NewTodo:item.NewTodo})" clearable>
                 </el-input>
-                <!-- </el-footer>
-                </el-container> -->
             </el-tab-pane>
         </el-tabs>
     </div>
@@ -83,12 +79,6 @@ export default {
     data() {
         return {
             MAXPROGRESS: constants.MAXPROGRESS,
-            // Content: constants.Content,
-            // FileName: constants.FileName,
-            // CurTab: constants.CurTab,
-            // CurDate: constants.CurDate,
-            // NewTodo: constants.NewTodo,
-            // FilterText: constants.FilterText,
             pickerOptions: {
                 disabledDate: time => {
                     return time.getTime() > Date.now();
@@ -117,8 +107,8 @@ export default {
                     onClick: picker => {
                         const date = new Date();
                         let today = util.FormatDateTime(date)
-                        if (today !== this.curDate) {
-                            this.tabs[this.curTab][constants.Content][today] = this.tabs[this.curTab][constants.Content][this.curDate]
+                        if (today !== this.CurDate) {
+                            this.TabsData[this.CurTab][constants.Content][today] = this.TabsData[this.CurTab][constants.Content][this.CurDate]
                             this.SaveCurrentFile()
                         }
                         picker.$emit('pick', date);
@@ -128,102 +118,80 @@ export default {
         };
     },
     computed: {
-        filterText: {
+        FilterText: {
             set(newData) {
-                let tabsData = vux.GetVuxData(constants.TabsData)
-                let curTab = vux.GetVuxData(constants.CurTab)
-                tabsData[curTab][constants.FilterText] = newData
-                vux.SetVuxData(tabsData, constants.TabsData)
+                this.TabsData[this.CurTab][constants.FilterText] = newData
+                vux.SetVuxData(this.TabsData, constants.TabsData)
             },
             get() {
-                let tabsData = vux.GetVuxData(constants.TabsData)
-                let curTab = vux.GetVuxData(constants.CurTab)
-                let curData = tabsData[curTab][constants.FilterText]
-                if (this.$refs.tree && this.$refs.tree[this.curTab]) this.$refs.tree[this.curTab].filter(curData);
+                let curData = this.TabsData[this.CurTab][constants.FilterText]
+                if (this.$refs.tree && this.$refs.tree[this.CurTab]) {
+                    this.$refs.tree[this.CurTab].filter(curData);
+                }
                 return curData;
             }
         },
-        // filterText: vux.GenerateComputedInTabsData(constants.FilterText, val => { this.$refs.tree[this.curTab].filter(val) }),
-        newTodo: vux.GenerateComputedInTabsData(constants.NewTodo),
-        curDate: vux.GenerateComputedInTabsData(constants.CurDate),
-        tabs: vux.GenerateComputed(constants.TabsData, this.SaveCurrentFile),
-        curTab: vux.GenerateComputed(constants.CurTab),
-        titleNotEditing: vux.GenerateComputed(constants.TitleNotEditing),
-        files: vux.GenerateComputed(constants.Files)
-    },
-    watch: {
-        // filterText(val) {
-        //     this.$refs.tree[this.curTab].filter(val);
-        // },
-        curDate(newCurDate) {
-            // first make sure tree is loaded
-            if (!(newCurDate in this.tabs[this.curTab][constants.Content])) {
-                this.tabs[this.curTab][constants.Content][newCurDate] = []
-                this.$nextTick(function () {
-                    this.updateCheckStatusAtFirst(newCurDate)
-                    this.SaveCurrentFile()
-                })
+        NewTodo: {
+            set(newData) {
+                this.TabsData[this.CurTab][constants.NewTodo] = newData
+                vux.SetVuxData(this.TabsData, constants.TabsData)
+            },
+            get() {
+                return this.TabsData[this.CurTab][constants.NewTodo];
             }
-        }
+        },
+        CurDate: {
+            set(newData) {
+                this.TabsData[this.CurTab][constants.CurDate] = newData
+                if (!(newData in this.TabsData[this.CurTab][constants.Content])) {
+                    this.TabsData[this.CurTab][constants.Content][newData] = []
+                    this.$nextTick(function () {
+                        this.updateCheckStatusAtFirst(newData)
+                        this.SaveCurrentFile()
+                    })
+                }
+                vux.SetVuxData(this.TabsData, constants.TabsData)
+            },
+            get() {
+                return this.TabsData[this.CurTab][constants.CurDate];
+            }
+        },
+        TabsData: vux.GenerateComputed(constants.TabsData, this.SaveCurrentFile),
+        CurTab: vux.GenerateComputed(constants.CurTab),
+        TitleNotEditing: vux.GenerateComputed(constants.TitleNotEditing),
+        Files: vux.GenerateComputed(constants.Files)
     },
     mounted() {
         this.$nextTick(function () {
             id = markdownParser.curId
-            this.updateCheckStatusAtFirst(this.curDate)
+            this.updateCheckStatusAtFirst(this.CurDate)
         });
     },
     methods: {
-        // GenerateComputedInTabsData(dataName, setCallback, getCallback) {
-        //     let tabsData = vux.GetVuxData(constants.TabsData)
-        //     let curTab = vux.GetVuxData(constants.CurTab)
-        //     return {
-        //         set(newData) {
-        //             console.log(tabsData)
-        //             tabsData[curTab][dataName] = newData
-        //             vux.SetVuxData(tabsData, constants.TabsData)
-        //             if (setCallback) {
-        //                 setCallback(newData);
-        //             }
-        //         },
-        //         get() {
-        //             let curData = tabsData[curTab][dataName]
-        //             if (getCallback) {
-        //                 getCallback(curData);
-        //             }
-        //             return curData;
-        //         }
-        //     }
-        // },
-        // Filter(val) {
-        //     this.$refs.tree[this.curTab].filter(val);
-        // },
         SaveCurrentFile() {
-            fileOperation.SaveMarkdownFile(this.tabs[this.curTab][constants.FileName], this.tabs[this.curTab][constants.Content])
+            fileOperation.SaveMarkdownFile(this.TabsData[this.CurTab][constants.FileName], this.TabsData[this.CurTab][constants.Content])
             fileOperation.SaveUserDataFile(constants.UserDataFile, {
-                [constants.Files]: this.files,
-                [constants.CurTab]: this.curTab
+                [constants.Files]: this.Files,
+                [constants.CurTab]: this.CurTab
             })
         },
         handleTitleEdit() {
-            this.titleNotEditing = false
+            this.TitleNotEditing = false
         },
         titleEdited(newTitle) {
-            this.titleNotEditing = true
-            this.tabs[this.curTab][constants.Content].title = newTitle
+            this.TitleNotEditing = true
+            this.TabsData[this.CurTab][constants.Content][constants.Title] = newTitle
             this.SaveCurrentFile()
         },
         handleTabsEdit(targetName, action) {
             if (action === 'add') {
                 ipcRenderer.send(constants.FileSaveChannel)
-                // this.tabs.push(util.GenerateNewTabData('New Todo File', { title: 'New Todo' }));
-                // this.files.push('New Todo File')
-                // this.curTab = (this.tabs.length - 1).toString();
             }
             if (action === 'remove') {
-                this.tabs.splice(parseInt(targetName), 1)
-                this.files.splice(parseInt(targetName), 1)
-                if (this.curTab >= this.tabs.length - 1) {
-                    this.curTab = (this.tabs.length - 1).toString();
+                this.TabsData.splice(parseInt(targetName), 1)
+                this.Files.splice(parseInt(targetName), 1)
+                if (this.CurTab >= this.TabsData.length - 1) {
+                    this.CurTab = (this.TabsData.length - 1).toString();
                 }
             }
         },
@@ -232,16 +200,16 @@ export default {
             return data.label.indexOf(value) !== -1;
         },
         updateCheckStatusAtFirst(thisDate) {
-            if (thisDate in this.tabs[this.curTab][constants.Content]) {
-                for (let rootData of this.tabs[this.curTab][constants.Content][thisDate]) {
-                    updateCheckStatus(this.$refs.tree[this.curTab].getNode(rootData))
+            if (thisDate in this.TabsData[this.CurTab][constants.Content]) {
+                for (let rootData of this.TabsData[this.CurTab][constants.Content][thisDate]) {
+                    updateCheckStatus(this.$refs.tree[this.CurTab].getNode(rootData))
                 }
             } else {
-                this.tabs[this.curTab][constants.Content][thisDate] = []
+                this.TabsData[this.CurTab][constants.Content][thisDate] = []
             }
         },
         handleCheckChange(data, checked, subchecked) {
-            let node = this.$refs.tree[this.curTab].getNode(data)
+            let node = this.$refs.tree[this.CurTab].getNode(data)
             let originProgress = data.progress
             if (checked) {
                 data.progress = constants.MAXPROGRESS
@@ -252,7 +220,18 @@ export default {
                 this.updateProgress(data.progress, node)
             }
         },
+        generateInitData(label) {
+            return { id: id++, label: label, progress: 0, finished: false, children: [] }
+        },
         updateProgress(newProgress, node) {
+            let parent = node.parent
+            if (!parent) {
+                // root node, have no progress/finished prop
+                this.SaveCurrentFile()
+                return
+            }
+
+            node.data = node.data
             node.data.progress = newProgress
             node.data.finished = (newProgress === constants.MAXPROGRESS)
             if (newProgress === constants.MAXPROGRESS) {
@@ -264,28 +243,22 @@ export default {
             } else {
                 node.indeterminate = true
             }
-            let parent = node.parent
-            if (!parent) {
-                this.SaveCurrentFile()
-                return
-            }
-
             this.updateProgress(calNodeProgress(parent), parent)
         },
         showProgress(val) {
             return util.ConvertProgressToDisplay(val)
         },
-        addTodo({ newTodo = 'new todo...', node = this.$refs.tree[this.curTab].root }) {
-            const newChild = { id: id++, label: newTodo, progress: 0, finished: false, children: [] };
-            if (!(this.curDate in this.tabs[this.curTab][constants.Content])) {
-                this.tabs[this.curTab][constants.Content][this.curDate] = []
+        addTodo({ NewTodo = 'new todo...', node = this.$refs.tree[this.CurTab].root }) {
+            const newChild = this.generateInitData(NewTodo)
+            if (!(this.CurDate in this.TabsData[this.CurTab][constants.Content])) {
+                this.TabsData[this.CurTab][constants.Content][this.CurDate] = []
             }
-            this.$refs.tree[this.curTab].append(newChild, node)
+            this.$refs.tree[this.CurTab].append(newChild, node)
             this.updateProgress(calNodeProgress(node), node)
         },
         removeTodo(node, data) {
             let parent = node.parent;
-            this.$refs.tree[this.curTab].remove(node)
+            this.$refs.tree[this.CurTab].remove(node)
             this.updateProgress(calNodeProgress(parent), parent)
         },
         doneEdit: function (newval, node, data) {
@@ -299,13 +272,13 @@ export default {
     }
 };
 
-ipcRenderer.on(constants.FileOpenedChannel, (evt, files) => {
+ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
     let tabsData = vux.GetVuxData(constants.TabsData)
     let storedFiles = vux.GetVuxData(constants.Files)
     let originLength = tabsData.length
     let originFileLength = storedFiles.length
     let count = 0
-    files.forEach((file, index) => {
+    Files.forEach((file, index) => {
         fileOperation.LoadMarkdownFile(file, res => {
             tabsData[index + originLength] = {
                 [constants.Content]: res,
@@ -313,9 +286,9 @@ ipcRenderer.on(constants.FileOpenedChannel, (evt, files) => {
             }
             storedFiles[index + originFileLength] = file
 
-            if (++count === files.length) {
-                let curTab = (originLength + files.length - 1).toString()
-                vux.SetVuxData(curTab, constants.CurTab)
+            if (++count === Files.length) {
+                let CurTab = (originLength + Files.length - 1).toString()
+                vux.SetVuxData(CurTab, constants.CurTab)
                 vux.SetVuxData(tabsData, constants.TabsData)
                 vux.SetVuxData(storedFiles, constants.Files)
             }
@@ -326,9 +299,8 @@ ipcRenderer.on(constants.FileOpenedChannel, (evt, files) => {
 ipcRenderer.on(constants.FileSavedChannel, (evt, filename) => {
     let tabsData = vux.GetVuxData(constants.TabsData)
     let storedFiles = vux.GetVuxData(constants.Files)
-    let initObj = { title: path.basename(filename, path.extname(filename)) }
+    let initObj = { [constants.Title]: path.basename(filename, path.extname(filename)) }
     let initData = util.GenerateNewTabData(filename, initObj)
-
     fileOperation.SaveMarkdownFile(filename, initObj, () => {
         let fileIndex = storedFiles.indexOf(filename)
         if (fileIndex === -1) {

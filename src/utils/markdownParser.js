@@ -7,10 +7,12 @@ export let curId = 1
 
 function convertEachDayArrToMarkDown(arr, preBlank = '') {
     let res = ''
-    for (let obj of arr) {
-        let progress = util.ConvertProgressToDisplay(obj.progress)
-        res += `${preBlank}- [${obj.finished ? 'x' : ' '}] ${obj.label} (${progress})\r\n`
-        res += convertEachDayArrToMarkDown(obj.children, preBlank + '    ')
+    if (arr) {
+        for (let obj of arr) {
+            let progress = util.ConvertProgressToDisplay(obj.progress)
+            res += `${preBlank}- [${obj.finished ? 'x' : ' '}] ${obj.label} (${progress})\r\n`
+            res += convertEachDayArrToMarkDown(obj.children, preBlank + '    ')
+        }
     }
     return res
 }
