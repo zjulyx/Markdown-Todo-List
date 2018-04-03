@@ -82,8 +82,12 @@ export default {
     data() {
         return {
             MAXPROGRESS: constants.MAXPROGRESS,
-            Content: constants.Content,
-            FileName: constants.FileName,
+            // Content: constants.Content,
+            // FileName: constants.FileName,
+            // CurTab: constants.CurTab,
+            // CurDate: constants.CurDate,
+            // NewTodo: constants.NewTodo,
+            // FilterText: constants.FilterText,
             pickerOptions: {
                 disabledDate: time => {
                     return time.getTime() > Date.now();
@@ -123,28 +127,41 @@ export default {
         };
     },
     computed: {
-        filterText: vux.GenerateComputed(constants.FilterText),
+        filterText: {
+            set(newData) {
+                let tabsData = vux.GetVuxData(constants.TabsData)
+                let curTab = vux.GetVuxData(constants.CurTab)
+                tabsData[curTab][constants.FilterText] = newData
+                vux.SetVuxData(tabsData, constants.TabsData)
+            },
+            get() {
+                let tabsData = vux.GetVuxData(constants.TabsData)
+                let curTab = vux.GetVuxData(constants.CurTab)
+                let curData = tabsData[curTab][constants.FilterText]
+                if (this.$refs.tree && this.$refs.tree[this.curTab]) this.$refs.tree[this.curTab].filter(curData);
+                return curData;
+            }
+        },
+        // filterText: vux.GenerateComputedInTabsData(constants.FilterText, val => { this.$refs.tree[this.curTab].filter(val) }),
+        newTodo: vux.GenerateComputedInTabsData(constants.NewTodo),
+        curDate: vux.GenerateComputedInTabsData(constants.CurDate),
         tabs: vux.GenerateComputed(constants.TabsData, this.SaveCurrentFile),
         curTab: vux.GenerateComputed(constants.CurTab),
-        newTodo: vux.GenerateComputed(constants.NewTodo),
         titleNotEditing: vux.GenerateComputed(constants.TitleNotEditing),
-        curDate: vux.GenerateComputed(constants.CurDate),
         files: vux.GenerateComputed(constants.Files)
     },
     watch: {
-        filterText(val) {
-            this.$refs.tree[this.curTab].filter(val);
-        },
-        curDate: {
-            handler: function (newCurDate) {
-                // first make sure tree is loaded
-                if (!(newCurDate in this.tabs[this.curTab][constants.Content])) {
-                    this.tabs[this.curTab][constants.Content][newCurDate] = []
-                    this.$nextTick(function () {
-                        this.updateCheckStatusAtFirst(newCurDate)
-                        this.SaveCurrentFile()
-                    })
-                }
+        // filterText(val) {
+        //     this.$refs.tree[this.curTab].filter(val);
+        // },
+        curDate(newCurDate) {
+            // first make sure tree is loaded
+            if (!(newCurDate in this.tabs[this.curTab][constants.Content])) {
+                this.tabs[this.curTab][constants.Content][newCurDate] = []
+                this.$nextTick(function () {
+                    this.updateCheckStatusAtFirst(newCurDate)
+                    this.SaveCurrentFile()
+                })
             }
         }
     },
@@ -155,6 +172,30 @@ export default {
         });
     },
     methods: {
+        // GenerateComputedInTabsData(dataName, setCallback, getCallback) {
+        //     let tabsData = vux.GetVuxData(constants.TabsData)
+        //     let curTab = vux.GetVuxData(constants.CurTab)
+        //     return {
+        //         set(newData) {
+        //             console.log(tabsData)
+        //             tabsData[curTab][dataName] = newData
+        //             vux.SetVuxData(tabsData, constants.TabsData)
+        //             if (setCallback) {
+        //                 setCallback(newData);
+        //             }
+        //         },
+        //         get() {
+        //             let curData = tabsData[curTab][dataName]
+        //             if (getCallback) {
+        //                 getCallback(curData);
+        //             }
+        //             return curData;
+        //         }
+        //     }
+        // },
+        // Filter(val) {
+        //     this.$refs.tree[this.curTab].filter(val);
+        // },
         SaveCurrentFile() {
             fileOperation.SaveMarkdownFile(this.tabs[this.curTab][constants.FileName], this.tabs[this.curTab][constants.Content])
             fileOperation.SaveUserDataFile(constants.UserDataFile, {
@@ -172,10 +213,7 @@ export default {
         },
         handleTabsEdit(targetName, action) {
             if (action === 'add') {
-                this.tabs.push({
-                    [constants.FileName]: 'New Todo File',
-                    [constants.Content]: { title: 'New Todo' }
-                });
+                this.tabs.push(util.GenerateNewTabData('New Todo File', { title: 'New Todo' }));
                 this.files.push('New Todo File')
                 this.curTab = (this.tabs.length - 1).toString();
             }

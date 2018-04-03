@@ -1,7 +1,8 @@
 'use strict'
 
-import { app, BrowserWindow, Menu, dialog } from 'electron'
+import { app, BrowserWindow, Menu } from 'electron'
 import * as fileOperation from '../utils/fileOperation'
+import * as util from '../utils/util'
 import * as constants from '../model/constants'
 
 let mainWindow
@@ -64,19 +65,16 @@ app.on('ready', () => {
     fileOperation.LoadUserDataFile(constants.UserDataFile, userData => {
         let files = userData[constants.Files]
         let curTab = userData[constants.CurTab]
-        global.sharedData[constants.Files] = files
-        global.sharedData[constants.CurTab] = curTab
         if (curTab >= files.length) {
             curTab = 0
         }
-        for (let i = 0; i < files.length; ++i) {
-            fileOperation.LoadMarkdownFile(files[i], res => {
-                global.sharedData[constants.TabsData][i] = {
-                    [constants.Content]: res,
-                    [constants.FileName]: files[i]
-                }
+        global.sharedData[constants.Files] = files
+        global.sharedData[constants.CurTab] = curTab
+        files.forEach((file, index) => {
+            fileOperation.LoadMarkdownFile(file, res => {
+                global.sharedData[constants.TabsData][index] = util.GenerateNewTabData(file, res)
             })
-        }
+        })
     })
 })
 

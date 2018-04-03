@@ -1,6 +1,5 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
-import * as util from "../../utils/util";
 import * as constants from "../../model/constants";
 import {
     remote
@@ -12,13 +11,10 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
     state: {
-        [constants.FilterText]: '',
         [constants.TabsData]: initSharedData[constants.TabsData],
         [constants.CurTab]: initSharedData[constants.CurTab],
         [constants.Files]: initSharedData[constants.Files],
-        [constants.NewTodo]: '',
-        [constants.TitleNotEditing]: true,
-        [constants.CurDate]: util.FormatDateTime(new Date())
+        [constants.TitleNotEditing]: true
     },
     mutations: {
         SetData(state, payload) {
