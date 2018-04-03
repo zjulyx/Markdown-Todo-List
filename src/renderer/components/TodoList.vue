@@ -46,6 +46,7 @@ import * as util from "../../utils/util";
 import * as vux from "../store/vuxOperation";
 
 import { ipcRenderer } from 'electron'
+import path from 'path'
 
 let id
 
@@ -213,9 +214,10 @@ export default {
         },
         handleTabsEdit(targetName, action) {
             if (action === 'add') {
-                this.tabs.push(util.GenerateNewTabData('New Todo File', { title: 'New Todo' }));
-                this.files.push('New Todo File')
-                this.curTab = (this.tabs.length - 1).toString();
+                ipcRenderer.send(constants.FileSaveChannel)
+                // this.tabs.push(util.GenerateNewTabData('New Todo File', { title: 'New Todo' }));
+                // this.files.push('New Todo File')
+                // this.curTab = (this.tabs.length - 1).toString();
             }
             if (action === 'remove') {
                 this.tabs.splice(parseInt(targetName), 1)
@@ -318,6 +320,25 @@ ipcRenderer.on(constants.FileOpenedChannel, (evt, files) => {
                 vux.SetVuxData(storedFiles, constants.Files)
             }
         })
+    })
+})
+
+ipcRenderer.on(constants.FileSavedChannel, (evt, filename) => {
+    let tabsData = vux.GetVuxData(constants.TabsData)
+    let storedFiles = vux.GetVuxData(constants.Files)
+    let initObj = { title: path.basename(filename, path.extname(filename)) }
+    let initData = util.GenerateNewTabData(filename, initObj)
+
+    fileOperation.SaveMarkdownFile(filename, initObj, () => {
+        let fileIndex = storedFiles.indexOf(filename)
+        if (fileIndex === -1) {
+            fileIndex = tabsData.length
+        }
+        storedFiles[fileIndex] = filename
+        tabsData[fileIndex] = initData
+        vux.SetVuxData(fileIndex.toString(), constants.CurTab)
+        vux.SetVuxData(tabsData, constants.TabsData)
+        vux.SetVuxData(storedFiles, constants.Files)
     })
 })
 </script>

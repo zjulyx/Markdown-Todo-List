@@ -1,6 +1,6 @@
 'use strict'
 
-import { app, BrowserWindow, Menu } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain } from 'electron'
 import * as fileOperation from '../utils/fileOperation'
 import * as util from '../utils/util'
 import * as constants from '../model/constants'
@@ -88,6 +88,10 @@ app.on('activate', () => {
     if (mainWindow === null) {
         createWindow()
     }
+})
+
+ipcMain.on(constants.FileSaveChannel, () => {
+    fileOperation.SaveMarkdownDialog(mainWindow)
 })
 
 /**

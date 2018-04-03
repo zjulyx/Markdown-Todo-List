@@ -4,6 +4,8 @@ import { dialog } from 'electron'
 import * as markdownParser from './markdownParser'
 import * as constants from '../model/constants';
 
+const fileDialogFilters = [{ name: 'Markdown Files', extensions: ['md'] }, { name: 'All Files', extensions: ['*'] }]
+
 function mkdirs(dirname, callback) {
     fs.access(dirname, err => {
         if (!err) {
@@ -32,7 +34,7 @@ function handleFileNotExist(file, callback, initData) {
 export function OpenMarkdownFile(mainWindow) {
     dialog.showOpenDialog({
         properties: ['openFile', 'multiSelections'],
-        filters: [{ name: 'Markdown Files', extensions: ['md'] }, { name: 'All Files', extensions: ['*'] }]
+        filters: fileDialogFilters
     }, (files) => {
         if (files) {
             mainWindow.webContents.send(constants.FileOpenedChannel, files)
@@ -67,10 +69,14 @@ export function LoadUserDataFile(userDataFile, callback) {
     })
 }
 
-export function SaveMarkdownFile(markdownFile, obj) {
+export function SaveMarkdownFile(markdownFile, obj, callback) {
     fs.writeFile(markdownFile, markdownParser.convertObjToMarkDown(obj), err => {
         if (err) {
             console.log(err)
+        }
+
+        if (callback) {
+            callback();
         }
     })
 }
@@ -79,6 +85,17 @@ export function SaveUserDataFile(userDataFile, obj) {
     fs.writeFile(userDataFile, JSON.stringify(obj), err => {
         if (err) {
             console.log(err)
+        }
+    })
+}
+
+export function SaveMarkdownDialog(mainWindow) {
+    dialog.showSaveDialog({
+        title: 'Save New Todo File',
+        filters: fileDialogFilters
+    }, (filename) => {
+        if (filename) {
+            mainWindow.webContents.send(constants.FileSavedChannel, filename)
         }
     })
 }

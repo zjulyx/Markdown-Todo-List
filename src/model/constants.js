@@ -15,3 +15,5 @@ export const FileName = 'FileName'
 export const Files = 'Files'
 
 export const FileOpenedChannel = "FileOpenedChannel"
+export const FileSaveChannel = "FileSaveChannel"
+export const FileSavedChannel = "FileSavedChannel"
