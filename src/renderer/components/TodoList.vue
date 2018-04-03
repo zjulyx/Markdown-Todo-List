@@ -45,6 +45,8 @@ import * as markdownParser from "../../utils/markdownParser";
 import * as util from "../../utils/util";
 import * as vux from "../store/vuxOperation";
 
+import { ipcRenderer } from 'electron'
+
 let id
 
 let calNodeProgress = function (node) {
@@ -174,10 +176,12 @@ export default {
                     [constants.FileName]: 'New Todo File',
                     [constants.Content]: { title: 'New Todo' }
                 });
+                this.files.push('New Todo File')
                 this.curTab = (this.tabs.length - 1).toString();
             }
             if (action === 'remove') {
                 this.tabs.splice(parseInt(targetName), 1)
+                this.files.splice(parseInt(targetName), 1)
                 if (this.curTab >= this.tabs.length - 1) {
                     this.curTab = (this.tabs.length - 1).toString();
                 }
@@ -254,6 +258,30 @@ export default {
         }
     }
 };
+
+ipcRenderer.on(constants.FileOpenedChannel, (evt, files) => {
+    let tabsData = vux.GetVuxData(constants.TabsData)
+    let storedFiles = vux.GetVuxData(constants.Files)
+    let originLength = tabsData.length
+    let originFileLength = storedFiles.length
+    let count = 0
+    files.forEach((file, index) => {
+        fileOperation.LoadMarkdownFile(file, res => {
+            tabsData[index + originLength] = {
+                [constants.Content]: res,
+                [constants.FileName]: file
+            }
+            storedFiles[index + originFileLength] = file
+
+            if (++count === files.length) {
+                let curTab = (originLength + files.length - 1).toString()
+                vux.SetVuxData(curTab, constants.CurTab)
+                vux.SetVuxData(tabsData, constants.TabsData)
+                vux.SetVuxData(storedFiles, constants.Files)
+            }
+        })
+    })
+})
 </script>
 
 <style>

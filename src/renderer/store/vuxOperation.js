@@ -1,10 +1,10 @@
 import store from './index'
 
-function GetVuxData(dataName) {
+export function GetVuxData(dataName) {
     return store.state[dataName]
 }
 
-function SetVuxData(newData, dataName) {
+export function SetVuxData(newData, dataName) {
     store.commit('SetData', {
         newData: newData,
         dataName: dataName
