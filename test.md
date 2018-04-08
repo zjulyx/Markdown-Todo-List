@@ -5,26 +5,6 @@
 - [ ] sdfsdfsddfgdgfdgdfgretertdgsdfg (0.00%)
 - [ ] sdfsdfsddfgdgfdgdfgretertdgsdfgertert (0.00%)
 
-## Invalid date
-
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-- [ ] undefined (0.00%)
-
 ## 2018-03-14
 
 - [ ] dgdfg (0.00%)
@@ -83,6 +63,9 @@
     - [ ] new todo... (0.00%)
 - [ ] sdfsdfsddfgdg (0.00%)
 
+## 2018-03-27
+
+
 ## 2018-03-28
 
 - [ ] dfgdfg (0.00%)
@@ -137,6 +120,9 @@
 - [ ] sdfsfsdgsgsdgsdgsdgsdgsd (0.00%)
 - [ ] sdfsfsdgsgsdgsdgsdgsdgsdg (0.00%)
 
+## 2018-03-31
+
+
 ## 2018-04-01
 
 - [ ] sfsdfsfdfgdfgfdgdfg (0.00%)
@@ -154,8 +140,11 @@
 ## 2018-04-03
 
 - [ ] sdfsdfxcvxcvxcv233 (0.00%)
+    - [ ] new todo... (0.00%)
+    - [ ] new todo... (0.00%)
 - [ ] sdfsdfxcvxcvxcv233 (0.00%)
 - [ ] ss (0.00%)
-    - [ ] new todo... (0.00%)
 - [ ] xdsdf (0.00%)
-    - [ ] new todo... (0.00%)
+
+## 2018-04-04
+

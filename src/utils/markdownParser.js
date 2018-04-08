@@ -5,6 +5,10 @@ import * as util from './util'
 
 export let curId = 1
 
+export function IncreaseCurId() {
+    return curId++;
+}
+
 function convertEachDayArrToMarkDown(arr, preBlank = '') {
     let res = ''
     if (arr) {
@@ -18,10 +22,10 @@ function convertEachDayArrToMarkDown(arr, preBlank = '') {
 }
 
 export function convertObjToMarkDown(obj) {
-    let res = `# ${obj.title}\r\n\r\n`
+    let res = `# ${obj[constants.Title]}\r\n\r\n`
     let keyDict = Object.keys(obj).sort((a, b) => { return new Date(a) - new Date(b) })
     for (let [index, curDate] of keyDict.entries()) {
-        if (curDate !== 'title') {
+        if (curDate !== constants.Title) {
             res += `## ${curDate}\r\n\r\n`
             res += convertEachDayArrToMarkDown(obj[curDate]);
             if (index !== keyDict.length - 1) {
@@ -51,7 +55,7 @@ function parseTodoItem(line) {
         finished = false
     }
     return {
-        id: curId++,
+        id: IncreaseCurId(),
         finished: finished,
         label: label,
         progress: progress,
@@ -92,7 +96,7 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
                 } else {
                     // title
                     let arr = /#(.*)/.exec(line)
-                    res.title = arr[1].trim()
+                    res[constants.Title] = arr[1].trim()
                 }
                 break
             case '-':

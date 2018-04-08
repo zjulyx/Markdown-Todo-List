@@ -1,6 +1,6 @@
 <template>
     <div>
-        <el-tabs v-model="CurTab" type="card" editable @edit="handleTabsEdit">
+        <el-tabs v-model="CurTab" type="card" editable @edit="handleTabsEdit" @dblclick.native="handleTabsEdit(CurTab, 'remove')" @click.middle.native="handleTabsEdit(CurTab, 'remove')">
             <el-tab-pane :key="index" v-for="(item,index) in TabsData" :label="item.FileName" :name="index.toString()">
                 <el-tag type="danger" hit @dblclick.native="handleTitleEdit" v-if="TitleNotEditing">
                     <i class="el-icon-tickets"></i>
@@ -43,8 +43,6 @@ import * as vux from "../store/vuxOperation";
 
 import { ipcRenderer } from 'electron'
 import path from 'path'
-
-let id
 
 let calNodeProgress = function (node) {
     let childCount = node.childNodes.length
@@ -118,6 +116,10 @@ export default {
         };
     },
     computed: {
+        // CurDate() {
+        //     console.log(vux.GetCurDate())
+        //     return vux.GetCurDate();
+        // },
         FilterText: {
             set(newData) {
                 this.TabsData[this.CurTab][constants.FilterText] = newData
@@ -157,18 +159,54 @@ export default {
             }
         },
         TabsData: vux.GenerateComputed(constants.TabsData, this.SaveCurrentFile),
-        CurTab: vux.GenerateComputed(constants.CurTab),
+        CurTab: vux.GenerateComputed(constants.CurTab, () => { console.log(vux.GetVuxData(constants.TabsData)) }),
         TitleNotEditing: vux.GenerateComputed(constants.TitleNotEditing),
         Files: vux.GenerateComputed(constants.Files)
     },
     mounted() {
         this.$nextTick(function () {
-            id = markdownParser.curId
             this.updateCheckStatusAtFirst(this.CurDate)
         });
     },
+    // watch: {
+    //     CurDate(newData) {
+    //         console.log(newData)
+    //         vux.GetCurDate() = newData
+    //         console.log(this.CurTab)
+    //         console.log(this.TabsData)
+    //         console.log(vux.GetCurTabContent())
+    //         if (!(newData in vux.GetCurTabContent())) {
+    //             vux.GetCurTabContent()[newData] = []
+    //             // this.$nextTick(function () {
+    //             this.SaveCurrentFile()
+    //             // })
+    //         }
+    //         this.updateCheckStatusAtFirst(newData)
+    //         vux.SetVuxData(this.TabsData, constants.TabsData)
+    //     }
+    // },
     methods: {
+        // CurDate() {
+        //     console.log(vux.GetCurDate())
+        //     return vux.GetCurDate();
+        // },
+        // SetCurDate(newData) {
+        //     console.log(newData)
+        //     vux.GetCurDate() = newData
+        //     console.log(this.CurTab)
+        //     console.log(this.TabsData)
+        //     console.log(vux.GetCurTabContent())
+        //     if (!(newData in vux.GetCurTabContent())) {
+        //         vux.GetCurTabContent()[newData] = []
+        //         // this.$nextTick(function () {
+        //         this.SaveCurrentFile()
+        //         // })
+        //     }
+        //     this.updateCheckStatusAtFirst(newData)
+        //     vux.SetVuxData(this.TabsData, constants.TabsData)
+        // },
         SaveCurrentFile() {
+            console.log(this.TabsData)
             fileOperation.SaveMarkdownFile(this.TabsData[this.CurTab][constants.FileName], this.TabsData[this.CurTab][constants.Content])
             fileOperation.SaveUserDataFile(constants.UserDataFile, {
                 [constants.Files]: this.Files,
@@ -221,7 +259,7 @@ export default {
             }
         },
         generateInitData(label) {
-            return { id: id++, label: label, progress: 0, finished: false, children: [] }
+            return { id: markdownParser.IncreaseCurId(), label: label, progress: 0, finished: false, children: [] }
         },
         updateProgress(newProgress, node) {
             let parent = node.parent
