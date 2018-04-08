@@ -35,14 +35,18 @@
 </template>
 
 <script>
+import Vue from 'vue'
+
 import * as constants from "../../model/constants";
 import * as fileOperation from "../../utils/fileOperation";
 import * as markdownParser from "../../utils/markdownParser";
 import * as util from "../../utils/util";
 import * as vux from "../store/vuxOperation";
 
-import { ipcRenderer } from 'electron'
+import { ipcRenderer, remote } from 'electron'
 import path from 'path'
+
+let initSharedData = JSON.parse(JSON.stringify(remote.getGlobal('sharedData')))
 
 let calNodeProgress = function (node) {
     let childCount = node.childNodes.length
@@ -72,10 +76,14 @@ let updateCheckStatus = function (node) {
     }
 }
 
-export default {
+let TodoList = {
     name: "todo-list",
     data() {
         return {
+            [constants.TabsData]: initSharedData[constants.TabsData],
+            // [constants.CurTab]: initSharedData[constants.CurTab],
+            [constants.Files]: initSharedData[constants.Files],
+            [constants.TitleNotEditing]: true,
             MAXPROGRESS: constants.MAXPROGRESS,
             pickerOptions: {
                 disabledDate: time => {
@@ -116,14 +124,17 @@ export default {
         };
     },
     computed: {
-        // CurDate() {
-        //     console.log(vux.GetCurDate())
-        //     return vux.GetCurDate();
-        // },
-        FilterText: {
+        [constants.CurTab]: {
+            set(newData) {
+                vux.SetCurTab(newData)
+            },
+            get() {
+                return vux.GetCurTab();
+            }
+        },
+        [constants.FilterText]: {
             set(newData) {
                 this.TabsData[this.CurTab][constants.FilterText] = newData
-                vux.SetVuxData(this.TabsData, constants.TabsData)
             },
             get() {
                 let curData = this.TabsData[this.CurTab][constants.FilterText]
@@ -133,16 +144,15 @@ export default {
                 return curData;
             }
         },
-        NewTodo: {
+        [constants.NewTodo]: {
             set(newData) {
                 this.TabsData[this.CurTab][constants.NewTodo] = newData
-                vux.SetVuxData(this.TabsData, constants.TabsData)
             },
             get() {
                 return this.TabsData[this.CurTab][constants.NewTodo];
             }
         },
-        CurDate: {
+        [constants.CurDate]: {
             set(newData) {
                 this.TabsData[this.CurTab][constants.CurDate] = newData
                 if (!(newData in this.TabsData[this.CurTab][constants.Content])) {
@@ -152,58 +162,26 @@ export default {
                         this.SaveCurrentFile()
                     })
                 }
-                vux.SetVuxData(this.TabsData, constants.TabsData)
             },
             get() {
                 return this.TabsData[this.CurTab][constants.CurDate];
             }
-        },
-        TabsData: vux.GenerateComputed(constants.TabsData, this.SaveCurrentFile),
-        CurTab: vux.GenerateComputed(constants.CurTab, () => { console.log(vux.GetVuxData(constants.TabsData)) }),
-        TitleNotEditing: vux.GenerateComputed(constants.TitleNotEditing),
-        Files: vux.GenerateComputed(constants.Files)
+        }
     },
     mounted() {
         this.$nextTick(function () {
             this.updateCheckStatusAtFirst(this.CurDate)
         });
     },
-    // watch: {
-    //     CurDate(newData) {
-    //         console.log(newData)
-    //         vux.GetCurDate() = newData
-    //         console.log(this.CurTab)
-    //         console.log(this.TabsData)
-    //         console.log(vux.GetCurTabContent())
-    //         if (!(newData in vux.GetCurTabContent())) {
-    //             vux.GetCurTabContent()[newData] = []
-    //             // this.$nextTick(function () {
-    //             this.SaveCurrentFile()
-    //             // })
-    //         }
-    //         this.updateCheckStatusAtFirst(newData)
-    //         vux.SetVuxData(this.TabsData, constants.TabsData)
-    //     }
-    // },
+    watch: {
+        CurTab(newData) {
+            console.log(newData)
+        }
+    },
     methods: {
-        // CurDate() {
-        //     console.log(vux.GetCurDate())
-        //     return vux.GetCurDate();
-        // },
-        // SetCurDate(newData) {
-        //     console.log(newData)
-        //     vux.GetCurDate() = newData
-        //     console.log(this.CurTab)
-        //     console.log(this.TabsData)
-        //     console.log(vux.GetCurTabContent())
-        //     if (!(newData in vux.GetCurTabContent())) {
-        //         vux.GetCurTabContent()[newData] = []
-        //         // this.$nextTick(function () {
-        //         this.SaveCurrentFile()
-        //         // })
-        //     }
-        //     this.updateCheckStatusAtFirst(newData)
-        //     vux.SetVuxData(this.TabsData, constants.TabsData)
+        // ModifyCurTab(newData) {
+        //     this.CurTab = newData
+        //     console.log(this)
         // },
         SaveCurrentFile() {
             console.log(this.TabsData)
@@ -243,7 +221,7 @@ export default {
                     updateCheckStatus(this.$refs.tree[this.CurTab].getNode(rootData))
                 }
             } else {
-                this.TabsData[this.CurTab][constants.Content][thisDate] = []
+                Vue.set(this.TabsData[this.CurTab][constants.Content], thisDate, [])
             }
         },
         handleCheckChange(data, checked, subchecked) {
@@ -289,7 +267,7 @@ export default {
         addTodo({ NewTodo = 'new todo...', node = this.$refs.tree[this.CurTab].root }) {
             const newChild = this.generateInitData(NewTodo)
             if (!(this.CurDate in this.TabsData[this.CurTab][constants.Content])) {
-                this.TabsData[this.CurTab][constants.Content][this.CurDate] = []
+                Vue.set(this.TabsData[this.CurTab][constants.Content], this.CurDate, [])
             }
             this.$refs.tree[this.CurTab].append(newChild, node)
             this.updateProgress(calNodeProgress(node), node)
@@ -310,33 +288,32 @@ export default {
     }
 };
 
+export default TodoList;
+
 ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
-    let tabsData = vux.GetVuxData(constants.TabsData)
-    let storedFiles = vux.GetVuxData(constants.Files)
+    let tabsData = TodoList.data()[constants.TabsData]
+    let storedFiles = TodoList.data()[constants.Files]
     let originLength = tabsData.length
     let originFileLength = storedFiles.length
     let count = 0
     Files.forEach((file, index) => {
         fileOperation.LoadMarkdownFile(file, res => {
-            tabsData[index + originLength] = {
+            Vue.set(tabsData, index + originLength, {
                 [constants.Content]: res,
                 [constants.FileName]: file
-            }
-            storedFiles[index + originFileLength] = file
-
+            })
+            Vue.set(storedFiles, index + originFileLength, file)
             if (++count === Files.length) {
-                let CurTab = (originLength + Files.length - 1).toString()
-                vux.SetVuxData(CurTab, constants.CurTab)
-                vux.SetVuxData(tabsData, constants.TabsData)
-                vux.SetVuxData(storedFiles, constants.Files)
+                Vue.set(TodoList.data(), constants.CurTab, (originLength + Files.length - 1).toString())
+                vux.SetCurTab((originLength + Files.length - 1).toString())
             }
         })
     })
 })
 
 ipcRenderer.on(constants.FileSavedChannel, (evt, filename) => {
-    let tabsData = vux.GetVuxData(constants.TabsData)
-    let storedFiles = vux.GetVuxData(constants.Files)
+    let tabsData = TodoList.data()[constants.TabsData]
+    let storedFiles = TodoList.data()[constants.Files]
     let initObj = { [constants.Title]: path.basename(filename, path.extname(filename)) }
     let initData = util.GenerateNewTabData(filename, initObj)
     fileOperation.SaveMarkdownFile(filename, initObj, () => {
@@ -344,11 +321,13 @@ ipcRenderer.on(constants.FileSavedChannel, (evt, filename) => {
         if (fileIndex === -1) {
             fileIndex = tabsData.length
         }
-        storedFiles[fileIndex] = filename
-        tabsData[fileIndex] = initData
-        vux.SetVuxData(fileIndex.toString(), constants.CurTab)
-        vux.SetVuxData(tabsData, constants.TabsData)
-        vux.SetVuxData(storedFiles, constants.Files)
+        Vue.set(tabsData, fileIndex, initData)
+        Vue.set(storedFiles, fileIndex, filename)
+        // console.log(fileIndex)
+        // TodoList.methods.ModifyCurTab(fileIndex.toString())
+        // vux.SetVuxData(fileIndex.toString())
+        vux.SetCurTab(fileIndex.toString())
+        // Vue.set(TodoList.data(), constants.CurTab, fileIndex.toString())
     })
 })
 </script>

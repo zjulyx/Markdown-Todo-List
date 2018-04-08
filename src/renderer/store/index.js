@@ -11,10 +11,7 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
     state: {
-        [constants.TabsData]: initSharedData[constants.TabsData],
-        [constants.CurTab]: initSharedData[constants.CurTab],
-        [constants.Files]: initSharedData[constants.Files],
-        [constants.TitleNotEditing]: true
+        [constants.CurTab]: initSharedData[constants.CurTab]
     },
     mutations: {
         SetData(state, payload) {
