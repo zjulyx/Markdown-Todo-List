@@ -54,10 +54,6 @@ function createWindow() {
 
     const menu = Menu.buildFromTemplate(template)
     Menu.setApplicationMenu(menu)
-
-    // globalShortcut.register('CommandOrControl+S', () => {
-    //     console.log('Save!')
-    // })
 }
 
 app.on('ready', () => {

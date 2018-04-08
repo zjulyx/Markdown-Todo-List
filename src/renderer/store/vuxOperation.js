@@ -19,17 +19,3 @@ export function GetCurTab() {
 export function SetCurTab(newData) {
     SetVuxData(newData, constants.CurTab)
 }
-
-// export function GenerateComputed(dataName, setCallback) {
-//     return {
-//         set(newData) {
-//             SetVuxData(newData, dataName)
-//             if (setCallback) {
-//                 setCallback(newData);
-//             }
-//         },
-//         get() {
-//             return GetVuxData(dataName)
-//         }
-//     }
-// }

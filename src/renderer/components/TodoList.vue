@@ -81,7 +81,6 @@ let TodoList = {
     data() {
         return {
             [constants.TabsData]: initSharedData[constants.TabsData],
-            // [constants.CurTab]: initSharedData[constants.CurTab],
             [constants.Files]: initSharedData[constants.Files],
             [constants.TitleNotEditing]: true,
             MAXPROGRESS: constants.MAXPROGRESS,
@@ -173,18 +172,8 @@ let TodoList = {
             this.updateCheckStatusAtFirst(this.CurDate)
         });
     },
-    watch: {
-        CurTab(newData) {
-            console.log(newData)
-        }
-    },
     methods: {
-        // ModifyCurTab(newData) {
-        //     this.CurTab = newData
-        //     console.log(this)
-        // },
         SaveCurrentFile() {
-            console.log(this.TabsData)
             fileOperation.SaveMarkdownFile(this.TabsData[this.CurTab][constants.FileName], this.TabsData[this.CurTab][constants.Content])
             fileOperation.SaveUserDataFile(constants.UserDataFile, {
                 [constants.Files]: this.Files,
@@ -323,11 +312,7 @@ ipcRenderer.on(constants.FileSavedChannel, (evt, filename) => {
         }
         Vue.set(tabsData, fileIndex, initData)
         Vue.set(storedFiles, fileIndex, filename)
-        // console.log(fileIndex)
-        // TodoList.methods.ModifyCurTab(fileIndex.toString())
-        // vux.SetVuxData(fileIndex.toString())
         vux.SetCurTab(fileIndex.toString())
-        // Vue.set(TodoList.data(), constants.CurTab, fileIndex.toString())
     })
 })
 </script>
