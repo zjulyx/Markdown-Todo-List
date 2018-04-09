@@ -113,7 +113,7 @@ let TodoList = {
                         const date = new Date();
                         let today = util.FormatDateTime(date)
                         if (today !== this.CurDate) {
-                            this.TabsData[this.CurTab][constants.Content][today] = this.TabsData[this.CurTab][constants.Content][this.CurDate]
+                            Vue.set(this.TabsData[this.CurTab][constants.Content], today, this.TabsData[this.CurTab][constants.Content][this.CurDate])
                             this.SaveCurrentFile()
                         }
                         picker.$emit('pick', date);
@@ -154,13 +154,9 @@ let TodoList = {
         [constants.CurDate]: {
             set(newData) {
                 this.TabsData[this.CurTab][constants.CurDate] = newData
-                if (!(newData in this.TabsData[this.CurTab][constants.Content])) {
-                    this.TabsData[this.CurTab][constants.Content][newData] = []
-                    this.$nextTick(function () {
-                        this.updateCheckStatusAtFirst(newData)
-                        this.SaveCurrentFile()
-                    })
-                }
+                this.$nextTick(function () {
+                    this.updateCheckStatusAtFirst(newData)
+                })
             },
             get() {
                 return this.TabsData[this.CurTab][constants.CurDate];
@@ -196,7 +192,7 @@ let TodoList = {
                 this.TabsData.splice(parseInt(targetName), 1)
                 this.Files.splice(parseInt(targetName), 1)
                 if (this.CurTab >= this.TabsData.length - 1) {
-                    this.CurTab = (this.TabsData.length - 1).toString();
+                    vux.SetCurTab((this.TabsData.length - 1).toString())
                 }
             }
         },
@@ -211,6 +207,7 @@ let TodoList = {
                 }
             } else {
                 Vue.set(this.TabsData[this.CurTab][constants.Content], thisDate, [])
+                this.SaveCurrentFile()
             }
         },
         handleCheckChange(data, checked, subchecked) {
