@@ -8,9 +8,9 @@
                 </el-tag>
                 <el-input prefix-icon="el-icon-edit" :value="item.Content.Title" @blur="event=>titleEdited(event.target.value)" @change="val=>titleEdited(val)" v-else>
                 </el-input>
-                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="FilterText" v-if="item.Content[CurDate]!==[]">
+                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="FilterText" v-if="item.Content[item.CurDate]!==[]">
                 </el-input>
-                <el-tree :data="item.Content[CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
+                <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
                     <span slot-scope="{ node, data }">
                         <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" size="mini">
                             <el-container slot="append">
@@ -25,9 +25,9 @@
                         </span>
                     </span>
                 </el-tree>
-                <el-date-picker v-model="CurDate" align="right" type="date" placeholder="Choose Date" :picker-options="pickerOptions" value-format="yyyy-MM-dd">
+                <el-date-picker v-model="item.CurDate" align="right" type="date" placeholder="Choose Date" :picker-options="pickerOptions" value-format="yyyy-MM-dd">
                 </el-date-picker>
-                <el-input placeholder="Add new Todo" v-model="NewTodo" @keyup.enter.native="addTodo({NewTodo:item.NewTodo})" clearable>
+                <el-input placeholder="Add new Todo" v-model="item.NewTodo" @keyup.enter.native="addTodo({NewTodo:item.NewTodo})" clearable>
                 </el-input>
             </el-tab-pane>
         </el-tabs>
@@ -80,9 +80,10 @@ let TodoList = {
     name: "todo-list",
     data() {
         return {
-            [constants.TabsData]: initSharedData[constants.TabsData],
-            [constants.Files]: initSharedData[constants.Files],
-            [constants.TitleNotEditing]: true,
+            TabsData: initSharedData.TabsData,
+            Files: initSharedData.Files,
+            TitleNotEditing: true,
+            // NewTodo: initSharedData.TabsData[initSharedData.CurTab].NewTodo,
             MAXPROGRESS: constants.MAXPROGRESS,
             pickerOptions: {
                 disabledDate: time => {
@@ -113,7 +114,7 @@ let TodoList = {
                         const date = new Date();
                         let today = util.FormatDateTime(date)
                         if (today !== this.CurDate) {
-                            Vue.set(this.TabsData[this.CurTab][constants.Content], today, this.TabsData[this.CurTab][constants.Content][this.CurDate])
+                            Vue.set(this.TabsData[this.CurTab].Content, today, this.TabsData[this.CurTab].Content[this.CurDate])
                             this.SaveCurrentFile()
                         }
                         picker.$emit('pick', date);
@@ -123,57 +124,77 @@ let TodoList = {
         };
     },
     computed: {
-        [constants.CurTab]: {
+        CurDate() {
+            return this.TabsData[this.CurTab].CurDate
+        },
+        CurTab: {
             set(newData) {
+                console.log('begin set CurTab')
                 vux.SetCurTab(newData)
+                this.updateCheckStatusAtFirst(this.CurDate)
+                console.log('end set CurTab')
             },
             get() {
                 return vux.GetCurTab();
             }
         },
-        [constants.FilterText]: {
+        FilterText: {
             set(newData) {
-                this.TabsData[this.CurTab][constants.FilterText] = newData
+                this.TabsData[this.CurTab].FilterText = newData
             },
             get() {
-                let curData = this.TabsData[this.CurTab][constants.FilterText]
+                let curData = this.TabsData[this.CurTab].FilterText
                 if (this.$refs.tree && this.$refs.tree[this.CurTab]) {
                     this.$refs.tree[this.CurTab].filter(curData);
                 }
                 return curData;
             }
-        },
-        [constants.NewTodo]: {
-            set(newData) {
-                this.TabsData[this.CurTab][constants.NewTodo] = newData
-            },
-            get() {
-                return this.TabsData[this.CurTab][constants.NewTodo];
-            }
-        },
-        [constants.CurDate]: {
-            set(newData) {
-                this.TabsData[this.CurTab][constants.CurDate] = newData
-                this.$nextTick(function () {
-                    this.updateCheckStatusAtFirst(newData)
-                })
-            },
-            get() {
-                return this.TabsData[this.CurTab][constants.CurDate];
-            }
         }
+        // .NewTodo: {
+        //     set(newData) {
+        //         this.TabsData[this.CurTab].NewTodo = newData
+        //     },
+        //     get() {
+        //         return this.TabsData[this.CurTab].NewTodo;
+        //     }
+        // },
+        // .CurDate: {
+        //     set(newData) {
+        //         this.TabsData[this.CurTab].CurDate = newData
+        //         // this.$nextTick(function () {
+        //         this.updateCheckStatusAtFirst(newData)
+        //         // })
+        //     },
+        //     get() {
+        //         return this.TabsData[this.CurTab].CurDate;
+        //     }
+        // }
+    },
+    watch: {
+        CurDate(newData) {
+            console.log('begin watch CurDate')
+            // this.$nextTick(function () {
+            this.updateCheckStatusAtFirst(newData)
+            // })
+            console.log('end watch CurDate')
+        }
+        // CurTab(newData) {
+        //     // this.$nextTick(function () {
+        //     this.updateCheckStatusAtFirst(this.CurDate)
+        //     // })
+        // }
     },
     mounted() {
-        this.$nextTick(function () {
-            this.updateCheckStatusAtFirst(this.CurDate)
-        });
+        // this.$nextTick(function () {
+        this.updateCheckStatusAtFirst(this.CurDate)
+        // });
     },
     methods: {
         SaveCurrentFile() {
-            fileOperation.SaveMarkdownFile(this.TabsData[this.CurTab][constants.FileName], this.TabsData[this.CurTab][constants.Content])
+            fileOperation.SaveMarkdownFile(this.TabsData[this.CurTab].FileName, this.TabsData[this.CurTab].Content)
             fileOperation.SaveUserDataFile(constants.UserDataFile, {
-                [constants.Files]: this.Files,
-                [constants.CurTab]: this.CurTab
+                Files: this.Files,
+                CurTab: this.CurTab
             })
         },
         handleTitleEdit() {
@@ -181,7 +202,7 @@ let TodoList = {
         },
         titleEdited(newTitle) {
             this.TitleNotEditing = true
-            this.TabsData[this.CurTab][constants.Content][constants.Title] = newTitle
+            this.TabsData[this.CurTab].Content.Title = newTitle
             this.SaveCurrentFile()
         },
         handleTabsEdit(targetName, action) {
@@ -201,12 +222,15 @@ let TodoList = {
             return data.label.indexOf(value) !== -1;
         },
         updateCheckStatusAtFirst(thisDate) {
-            if (thisDate in this.TabsData[this.CurTab][constants.Content]) {
-                for (let rootData of this.TabsData[this.CurTab][constants.Content][thisDate]) {
-                    updateCheckStatus(this.$refs.tree[this.CurTab].getNode(rootData))
+            if (thisDate in this.TabsData[this.CurTab].Content) {
+                for (let rootData of this.TabsData[this.CurTab].Content[thisDate]) {
+                    this.$nextTick(function () {
+                        updateCheckStatus(this.$refs.tree[this.CurTab].getNode(rootData))
+                    })
                 }
             } else {
-                Vue.set(this.TabsData[this.CurTab][constants.Content], thisDate, [])
+                // this.TabsData[this.CurTab].Content[thisDate] = []
+                Vue.set(this.TabsData[this.CurTab].Content, thisDate, [])
                 this.SaveCurrentFile()
             }
         },
@@ -252,8 +276,8 @@ let TodoList = {
         },
         addTodo({ NewTodo = 'new todo...', node = this.$refs.tree[this.CurTab].root }) {
             const newChild = this.generateInitData(NewTodo)
-            if (!(this.CurDate in this.TabsData[this.CurTab][constants.Content])) {
-                Vue.set(this.TabsData[this.CurTab][constants.Content], this.CurDate, [])
+            if (!(this.CurDate in this.TabsData[this.CurTab].Content)) {
+                Vue.set(this.TabsData[this.CurTab].Content, this.CurDate, [])
             }
             this.$refs.tree[this.CurTab].append(newChild, node)
             this.updateProgress(calNodeProgress(node), node)
@@ -277,17 +301,14 @@ let TodoList = {
 export default TodoList;
 
 ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
-    let tabsData = TodoList.data()[constants.TabsData]
-    let storedFiles = TodoList.data()[constants.Files]
+    let tabsData = TodoList.data().TabsData
+    let storedFiles = TodoList.data().Files
     let originLength = tabsData.length
     let originFileLength = storedFiles.length
     let count = 0
     Files.forEach((file, index) => {
         fileOperation.LoadMarkdownFile(file, res => {
-            Vue.set(tabsData, index + originLength, {
-                [constants.Content]: res,
-                [constants.FileName]: file
-            })
+            Vue.set(tabsData, index + originLength, util.GenerateNewTabData(file, res))
             Vue.set(storedFiles, index + originFileLength, file)
             if (++count === Files.length) {
                 Vue.set(TodoList.data(), constants.CurTab, (originLength + Files.length - 1).toString())
@@ -298,9 +319,9 @@ ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
 })
 
 ipcRenderer.on(constants.FileSavedChannel, (evt, filename) => {
-    let tabsData = TodoList.data()[constants.TabsData]
-    let storedFiles = TodoList.data()[constants.Files]
-    let initObj = { [constants.Title]: path.basename(filename, path.extname(filename)) }
+    let tabsData = TodoList.data().TabsData
+    let storedFiles = TodoList.data().Files
+    let initObj = { Title: path.basename(filename, path.extname(filename)) }
     let initData = util.GenerateNewTabData(filename, initObj)
     fileOperation.SaveMarkdownFile(filename, initObj, () => {
         let fileIndex = storedFiles.indexOf(filename)
