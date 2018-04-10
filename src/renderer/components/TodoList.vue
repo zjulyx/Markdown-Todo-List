@@ -83,43 +83,70 @@ let TodoList = {
             TabsData: initSharedData.TabsData,
             Files: initSharedData.Files,
             TitleNotEditing: true,
-            // NewTodo: initSharedData.TabsData[initSharedData.CurTab].NewTodo,
             MAXPROGRESS: constants.MAXPROGRESS,
+            FilterDate: true,
             pickerOptions: {
                 disabledDate: time => {
-                    return time.getTime() > Date.now();
+                    if (this.FilterDate) {
+                        let sTime = util.FormatDateTime(time)
+                        return time.getTime() > Date.now() || !(sTime in this.TabsData[this.CurTab].Content) || this.TabsData[this.CurTab].Content[sTime].length === 0
+                    } else {
+                        // todo: use electron menu to switch this, and put it to user data file
+                        return true
+                    }
                 },
-                shortcuts: [{
-                    text: 'Today',
-                    onClick(picker) {
-                        picker.$emit('pick', new Date());
-                    }
-                }, {
-                    text: 'Yesterday',
-                    onClick(picker) {
-                        const date = new Date();
-                        date.setTime(date.getTime() - 3600 * 1000 * 24);
-                        picker.$emit('pick', date);
-                    }
-                }, {
-                    text: 'A Week Ago',
-                    onClick(picker) {
-                        const date = new Date();
-                        date.setTime(date.getTime() - 3600 * 1000 * 24 * 7);
-                        picker.$emit('pick', date);
-                    }
-                }, {
-                    text: 'Copy To Today',
-                    onClick: picker => {
-                        const date = new Date();
-                        let today = util.FormatDateTime(date)
-                        if (today !== this.CurDate) {
-                            Vue.set(this.TabsData[this.CurTab].Content, today, this.TabsData[this.CurTab].Content[this.CurDate])
-                            this.SaveCurrentFile()
+                firstDayOfWeek: 1,
+                shortcuts: [
+                    {
+                        // todo: delete this
+                        text: 'Show All',
+                        onClick: picker => {
+                            this.FilterDate = false
+                            picker.$emit('pick', this.CurDate);
                         }
-                        picker.$emit('pick', date);
-                    }
-                }]
+                    },
+                    {
+                        // todo: delete this
+                        text: 'Show Content',
+                        onClick: picker => {
+                            this.FilterDate = true
+                            picker.$emit('pick', this.CurDate);
+                        }
+                    },
+                    {
+                        text: 'Today',
+                        onClick(picker) {
+                            picker.$emit('pick', new Date());
+                        }
+                    },
+                    {
+                        text: 'Yesterday',
+                        onClick(picker) {
+                            const date = new Date();
+                            date.setTime(date.getTime() - 3600 * 1000 * 24);
+                            picker.$emit('pick', date);
+                        }
+                    },
+                    {
+                        text: 'A Week Ago',
+                        onClick(picker) {
+                            const date = new Date();
+                            date.setTime(date.getTime() - 3600 * 1000 * 24 * 7);
+                            picker.$emit('pick', date);
+                        }
+                    },
+                    {
+                        text: 'Copy To Today',
+                        onClick: picker => {
+                            const date = new Date();
+                            let today = util.FormatDateTime(date)
+                            if (today !== this.CurDate) {
+                                Vue.set(this.TabsData[this.CurTab].Content, today, this.TabsData[this.CurTab].Content[this.CurDate])
+                                this.SaveCurrentFile()
+                            }
+                            picker.$emit('pick', date);
+                        }
+                    }]
             }
         };
     },
@@ -150,44 +177,16 @@ let TodoList = {
                 return curData;
             }
         }
-        // .NewTodo: {
-        //     set(newData) {
-        //         this.TabsData[this.CurTab].NewTodo = newData
-        //     },
-        //     get() {
-        //         return this.TabsData[this.CurTab].NewTodo;
-        //     }
-        // },
-        // .CurDate: {
-        //     set(newData) {
-        //         this.TabsData[this.CurTab].CurDate = newData
-        //         // this.$nextTick(function () {
-        //         this.updateCheckStatusAtFirst(newData)
-        //         // })
-        //     },
-        //     get() {
-        //         return this.TabsData[this.CurTab].CurDate;
-        //     }
-        // }
     },
     watch: {
         CurDate(newData) {
             console.log('begin watch CurDate')
-            // this.$nextTick(function () {
             this.updateCheckStatusAtFirst(newData)
-            // })
             console.log('end watch CurDate')
         }
-        // CurTab(newData) {
-        //     // this.$nextTick(function () {
-        //     this.updateCheckStatusAtFirst(this.CurDate)
-        //     // })
-        // }
     },
     mounted() {
-        // this.$nextTick(function () {
         this.updateCheckStatusAtFirst(this.CurDate)
-        // });
     },
     methods: {
         SaveCurrentFile() {
@@ -229,7 +228,6 @@ let TodoList = {
                     })
                 }
             } else {
-                // this.TabsData[this.CurTab].Content[thisDate] = []
                 Vue.set(this.TabsData[this.CurTab].Content, thisDate, [])
                 this.SaveCurrentFile()
             }
