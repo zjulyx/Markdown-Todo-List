@@ -93,6 +93,9 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
                     // date
                     let arr = /##(.*)/.exec(line)
                     curDate = util.FormatDateTime(arr[1].trim())
+                    if (!(curDate in res)) {
+                        res[curDate] = []
+                    }
                 } else {
                     // title
                     let arr = /#(.*)/.exec(line)
@@ -101,9 +104,6 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
                 break
             case '-':
             case '*':
-                if (!(curDate in res)) {
-                    res[curDate] = []
-                }
                 res[curDate].push(parseTodoItem(line))
                 stack = [res[curDate][0]]
                 break
