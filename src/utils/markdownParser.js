@@ -67,48 +67,58 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
     let res = {}
     let stack = []
     let curDate = util.FormatDateTime()
+    let hasError = false
     markdown.on('line', line => {
-        switch (line[0]) {
-            case ' ':
-            case '\t':
-                if (!line.trimLeft().startsWith('-') && !line.trimLeft().startsWith('*')) {
-                    break
-                }
-                let curNode = parseTodoItem(line.trimLeft())
-                let curBlankCount = line.length - line.trimLeft().length
-                let curLevel = curBlankCount / 4 + 1
-                if (curLevel <= stack.length) {
-                    stack.splice(curLevel - 1, stack.length)
-                }
-                let parent = stack[stack.length - 1]
-                parent.children.push(curNode)
-                stack.push(curNode)
-                break
-            case '#':
-                if (line.startsWith('##')) {
-                    // date
-                    let arr = /##(.*)/.exec(line)
-                    curDate = util.FormatDateTime(arr[1].trim())
-                    if (!(curDate in res)) {
-                        res[curDate] = []
+        try {
+            switch (line[0]) {
+                case ' ':
+                case '\t':
+                    if (!line.trimLeft().startsWith('-') && !line.trimLeft().startsWith('*')) {
+                        break
                     }
-                } else {
-                    // title
-                    let arr = /#(.*)/.exec(line)
-                    res[constants.Title] = arr[1].trim()
-                }
-                break
-            case '-':
-            case '*':
-                res[curDate].push(parseTodoItem(line))
-                stack = [res[curDate][0]]
-                break
-            default:
-                break
+                    let curNode = parseTodoItem(line.trimLeft())
+                    let curBlankCount = line.length - line.trimLeft().length
+                    let curLevel = curBlankCount / 4 + 1
+                    if (curLevel <= stack.length) {
+                        stack.splice(curLevel - 1, stack.length)
+                    }
+                    let parent = stack[stack.length - 1]
+                    parent.children.push(curNode)
+                    stack.push(curNode)
+                    break
+                case '#':
+                    if (line.startsWith('##')) {
+                        // date
+                        let arr = /##(.*)/.exec(line)
+                        curDate = util.FormatDateTime(arr[1].trim())
+                        if (!(curDate in res)) {
+                            res[curDate] = []
+                        }
+                    } else {
+                        // title
+                        let arr = /#(.*)/.exec(line)
+                        res[constants.Title] = arr[1].trim()
+                    }
+                    break
+                case '-':
+                case '*':
+                    res[curDate].push(parseTodoItem(line))
+                    stack = [res[curDate][0]]
+                    break
+                default:
+                    break
+            }
+        } catch (ex) {
+            // find error in parse
+            console.log(ex)
+            // todo: change it to confirm
+            util.ShowDialog(`Error in ${markdownFile}!!!\r\n${ex}\r\nWill reset its data.`, constants.DialogTypes.Error)
+            hasError = true
         }
     })
 
     markdown.on('close', () => {
+        res = hasError ? {} : res
         finishCallback(res)
     })
 }

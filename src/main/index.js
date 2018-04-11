@@ -77,11 +77,12 @@ app.on('ready', () => {
     createWindow()
     fileOperation.LoadUserDataFile(constants.UserDataFile, userData => {
         let files = userData[constants.Files]
-        let curTab = userData[constants.CurTab]
+        let curTab = parseInt(userData[constants.CurTab])
         let onlyShowContentDate = userData[constants.OnlyShowContentDate]
-        if (curTab >= files.length) {
+        if (isNaN(curTab) || curTab < 0 || curTab >= files.length) {
             curTab = 0
         }
+        curTab = curTab.toString()
         global.sharedData[constants.Files] = files
         global.sharedData[constants.CurTab] = curTab
         global.sharedData[constants.OnlyShowContentDate] = onlyShowContentDate
@@ -112,6 +113,11 @@ app.on('activate', () => {
 
 ipcMain.on(constants.FileSaveChannel, () => {
     fileOperation.SaveMarkdownDialog(mainWindow)
+})
+
+ipcMain.on(constants.OpenDialogChannel, (evt, msg, type) => {
+    console.log(evt, msg, type)
+    util.ShowDialog(msg, type)
 })
 
 /**

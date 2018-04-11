@@ -20,3 +20,11 @@ export const FileOpenedChannel = "FileOpenedChannel"
 export const FileSaveChannel = "FileSaveChannel"
 export const FileSavedChannel = "FileSavedChannel"
 export const ToggleSwitchChannel = "ToggleSwitchChannel"
+export const OpenDialogChannel = "OpenDialogChannel"
+
+export const DialogTypes = {
+    Info: "Info",
+    Warning: "Warning",
+    Error: "Error",
+    Confirm: "Confirm"
+}
