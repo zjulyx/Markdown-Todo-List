@@ -3,11 +3,7 @@ import readline from 'readline'
 import * as constants from '../model/constants'
 import * as util from './util'
 
-export let curId = 1
-
-export function IncreaseCurId() {
-    return curId++;
-}
+export let CurId = 0
 
 function convertEachDayArrToMarkDown(arr, preBlank = '') {
     let res = ''
@@ -55,7 +51,7 @@ function parseTodoItem(line) {
         finished = false
     }
     return {
-        id: IncreaseCurId(),
+        id: ++CurId,
         finished: finished,
         label: label,
         progress: progress,

@@ -39,7 +39,6 @@ import Vue from 'vue'
 
 import * as constants from "../../model/constants";
 import * as fileOperation from "../../utils/fileOperation";
-import * as markdownParser from "../../utils/markdownParser";
 import * as util from "../../utils/util";
 import * as vux from "../store/vuxOperation";
 
@@ -111,10 +110,8 @@ let TodoList = {
         },
         CurTab: {
             set(newData) {
-                console.log('begin set CurTab')
                 SetCurTab(newData)
                 this.updateCheckStatusAtFirst(this.CurDate)
-                console.log('end set CurTab')
             },
             get() {
                 return GetCurTab();
@@ -135,9 +132,7 @@ let TodoList = {
     },
     watch: {
         CurDate(newData) {
-            console.log('begin watch CurDate')
             this.updateCheckStatusAtFirst(newData)
-            console.log('end watch CurDate')
         }
     },
     mounted() {
@@ -245,8 +240,15 @@ let TodoList = {
 
 export default TodoList;
 
+function IncreaseCurId() {
+    let curId = vux.GetVuxData(constants.CurId)
+    curId++
+    vux.SetVuxData(curId, constants.CurId)
+    return curId
+}
+
 function GenerateInitData(label) {
-    return { id: markdownParser.IncreaseCurId(), label: label, progress: 0, finished: false, children: [] }
+    return { id: IncreaseCurId(), label: label, progress: 0, finished: false, children: [] }
 }
 
 function CalNodeProgress(node) {

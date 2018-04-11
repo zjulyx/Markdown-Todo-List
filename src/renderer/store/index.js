@@ -12,6 +12,7 @@ Vue.use(Vuex)
 export default new Vuex.Store({
     state: {
         [constants.CurTab]: initSharedData[constants.CurTab],
+        [constants.CurId]: initSharedData[constants.CurId],
         [constants.OnlyShowContentDate]: initSharedData[constants.OnlyShowContentDate]
     },
     mutations: {

@@ -2,6 +2,7 @@
 
 import { app, BrowserWindow, Menu, ipcMain } from 'electron'
 import * as fileOperation from '../utils/fileOperation'
+import * as markdownParser from '../utils/markdownParser'
 import * as util from '../utils/util'
 import * as constants from '../model/constants'
 
@@ -9,6 +10,7 @@ global.sharedData = {
     [constants.Files]: [],
     [constants.TabsData]: [],
     [constants.CurTab]: 0,
+    [constants.CurId]: 0,
     [constants.OnlyShowContentDate]: true
 }
 
@@ -84,9 +86,13 @@ app.on('ready', () => {
         global.sharedData[constants.CurTab] = curTab
         global.sharedData[constants.OnlyShowContentDate] = onlyShowContentDate
         createMenu(onlyShowContentDate)
+        let count = 0
         files.forEach((file, index) => {
             fileOperation.LoadMarkdownFile(file, res => {
                 global.sharedData[constants.TabsData][index] = util.GenerateNewTabData(file, res)
+                if (++count === files.length) {
+                    global.sharedData[constants.CurId] = markdownParser.CurId
+                }
             })
         })
     })
