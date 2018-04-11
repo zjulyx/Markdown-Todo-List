@@ -5,24 +5,14 @@ import * as fileOperation from '../utils/fileOperation'
 import * as util from '../utils/util'
 import * as constants from '../model/constants'
 
-let mainWindow
-
-let template = [{
-    label: 'File',
-    submenu: [{
-        label: 'Open Todo List File',
-        accelerator: 'CmdOrCtrl+O',
-        click() {
-            fileOperation.OpenMarkdownFile(mainWindow)
-        }
-    }]
-}]
-
 global.sharedData = {
     [constants.Files]: [],
     [constants.TabsData]: [],
-    [constants.CurTab]: 0
+    [constants.CurTab]: 0,
+    [constants.OnlyShowContentDate]: true
 }
+
+let mainWindow
 
 /**
  * Set `__static` path to static files in production
@@ -51,7 +41,32 @@ function createWindow() {
     mainWindow.on('closed', () => {
         mainWindow = null
     })
+}
 
+function createMenu(onlyShowContentDate) {
+    let template = [
+        {
+            label: 'File',
+            submenu: [{
+                label: 'Open Todo List File',
+                accelerator: 'CmdOrCtrl+O',
+                click() {
+                    fileOperation.OpenMarkdownFile(mainWindow)
+                }
+            }]
+        },
+        {
+            label: 'Option',
+            submenu: [{
+                label: 'Only show date containing todo items',
+                type: 'checkbox',
+                checked: onlyShowContentDate,
+                click(menuItem) {
+                    mainWindow.webContents.send(constants.ToggleSwitchChannel, menuItem)
+                }
+            }]
+        }
+    ]
     const menu = Menu.buildFromTemplate(template)
     Menu.setApplicationMenu(menu)
 }
@@ -61,11 +76,14 @@ app.on('ready', () => {
     fileOperation.LoadUserDataFile(constants.UserDataFile, userData => {
         let files = userData[constants.Files]
         let curTab = userData[constants.CurTab]
+        let onlyShowContentDate = userData[constants.OnlyShowContentDate]
         if (curTab >= files.length) {
             curTab = 0
         }
         global.sharedData[constants.Files] = files
         global.sharedData[constants.CurTab] = curTab
+        global.sharedData[constants.OnlyShowContentDate] = onlyShowContentDate
+        createMenu(onlyShowContentDate)
         files.forEach((file, index) => {
             fileOperation.LoadMarkdownFile(file, res => {
                 global.sharedData[constants.TabsData][index] = util.GenerateNewTabData(file, res)

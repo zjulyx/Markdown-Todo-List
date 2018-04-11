@@ -54,17 +54,19 @@ export function LoadMarkdownFile(markdownFile, callback) {
 
 export function LoadUserDataFile(userDataFile, callback) {
     fs.readFile(userDataFile, 'utf-8', (err, res) => {
-        if (err) {
+        try {
+            if (err) throw new Error(err);
+            callback(JSON.parse(res))
+        } catch (ex) {
             handleFileNotExist(
                 userDataFile,
                 callback,
                 {
                     [constants.Files]: [],
-                    [constants.CurTab]: '0'
+                    [constants.CurTab]: '0',
+                    [constants.OnlyShowContentDate]: true
                 }
             )
-        } else {
-            callback(JSON.parse(res))
         }
     })
 }

@@ -8,7 +8,7 @@
                 </el-tag>
                 <el-input prefix-icon="el-icon-edit" :value="item.Content.Title" @blur="event=>titleEdited(event.target.value)" @change="val=>titleEdited(val)" v-else>
                 </el-input>
-                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="FilterText" v-if="item.Content[item.CurDate].length!==0">
+                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="FilterText" v-if="!item.Content[item.CurDate] || item.Content[item.CurDate].length!==0">
                 </el-input>
                 <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
                     <span slot-scope="{ node, data }">
@@ -48,34 +48,6 @@ import path from 'path'
 
 let initSharedData = JSON.parse(JSON.stringify(remote.getGlobal('sharedData')))
 
-let calNodeProgress = function (node) {
-    let childCount = node.childNodes.length
-    if (childCount === 0) {
-        return node.data.progress
-    }
-    let progressSum = 0
-    for (let child of node.childNodes) {
-        progressSum += child.data.progress
-    }
-    return progressSum / childCount
-}
-
-let updateCheckStatus = function (node) {
-    if (!node) {
-        return
-    }
-
-    if (node.data.progress === constants.MAXPROGRESS) {
-        node.checked = true
-        node.indeterminate = false
-    } else if (node.data.progress !== 0) {
-        node.indeterminate = true
-    }
-    for (let child of node.childNodes) {
-        updateCheckStatus(child)
-    }
-}
-
 let TodoList = {
     name: "todo-list",
     data() {
@@ -87,32 +59,15 @@ let TodoList = {
             FilterDate: true,
             pickerOptions: {
                 disabledDate: time => {
-                    if (this.FilterDate) {
+                    if (GetOnlyShowContentDate()) {
                         let sTime = util.FormatDateTime(time)
                         return time.getTime() > Date.now() || !(sTime in this.TabsData[this.CurTab].Content) || this.TabsData[this.CurTab].Content[sTime].length === 0
                     } else {
-                        // todo: use electron menu to switch this, and put it to user data file
-                        return true
+                        return time.getTime() > Date.now()
                     }
                 },
                 firstDayOfWeek: 1,
                 shortcuts: [
-                    {
-                        // todo: delete this
-                        text: 'Show All',
-                        onClick: picker => {
-                            this.FilterDate = false
-                            picker.$emit('pick', this.CurDate);
-                        }
-                    },
-                    {
-                        // todo: delete this
-                        text: 'Show Content',
-                        onClick: picker => {
-                            this.FilterDate = true
-                            picker.$emit('pick', this.CurDate);
-                        }
-                    },
                     {
                         text: 'Today',
                         onClick(picker) {
@@ -142,7 +97,7 @@ let TodoList = {
                             let today = util.FormatDateTime(date)
                             if (today !== this.CurDate) {
                                 Vue.set(this.TabsData[this.CurTab].Content, today, this.TabsData[this.CurTab].Content[this.CurDate])
-                                this.SaveCurrentFile()
+                                SaveMarkdownFile()
                             }
                             picker.$emit('pick', date);
                         }
@@ -157,12 +112,12 @@ let TodoList = {
         CurTab: {
             set(newData) {
                 console.log('begin set CurTab')
-                vux.SetCurTab(newData)
+                SetCurTab(newData)
                 this.updateCheckStatusAtFirst(this.CurDate)
                 console.log('end set CurTab')
             },
             get() {
-                return vux.GetCurTab();
+                return GetCurTab();
             }
         },
         FilterText: {
@@ -189,20 +144,13 @@ let TodoList = {
         this.updateCheckStatusAtFirst(this.CurDate)
     },
     methods: {
-        SaveCurrentFile() {
-            fileOperation.SaveMarkdownFile(this.TabsData[this.CurTab].FileName, this.TabsData[this.CurTab].Content)
-            fileOperation.SaveUserDataFile(constants.UserDataFile, {
-                Files: this.Files,
-                CurTab: this.CurTab
-            })
-        },
         handleTitleEdit() {
             this.TitleNotEditing = false
         },
         titleEdited(newTitle) {
             this.TitleNotEditing = true
             this.TabsData[this.CurTab].Content.Title = newTitle
-            this.SaveCurrentFile()
+            SaveMarkdownFile()
         },
         handleTabsEdit(targetName, action) {
             if (action === 'add') {
@@ -212,8 +160,9 @@ let TodoList = {
                 this.TabsData.splice(parseInt(targetName), 1)
                 this.Files.splice(parseInt(targetName), 1)
                 if (this.CurTab >= this.TabsData.length - 1) {
-                    vux.SetCurTab((this.TabsData.length - 1).toString())
+                    SetCurTab((this.TabsData.length - 1).toString())
                 }
+                SaveUserDataFile()
             }
         },
         filterNode(value, data) {
@@ -224,12 +173,12 @@ let TodoList = {
             if (thisDate in this.TabsData[this.CurTab].Content) {
                 for (let rootData of this.TabsData[this.CurTab].Content[thisDate]) {
                     this.$nextTick(function () {
-                        updateCheckStatus(this.$refs.tree[this.CurTab].getNode(rootData))
+                        UpdateCheckStatus(this.$refs.tree[this.CurTab].getNode(rootData))
                     })
                 }
             } else {
                 Vue.set(this.TabsData[this.CurTab].Content, thisDate, [])
-                this.SaveCurrentFile()
+                SaveMarkdownFile()
             }
         },
         handleCheckChange(data, checked, subchecked) {
@@ -244,14 +193,11 @@ let TodoList = {
                 this.updateProgress(data.progress, node)
             }
         },
-        generateInitData(label) {
-            return { id: markdownParser.IncreaseCurId(), label: label, progress: 0, finished: false, children: [] }
-        },
         updateProgress(newProgress, node) {
             let parent = node.parent
             if (!parent) {
                 // root node, have no progress/finished prop
-                this.SaveCurrentFile()
+                SaveMarkdownFile()
                 return
             }
 
@@ -267,36 +213,106 @@ let TodoList = {
             } else {
                 node.indeterminate = true
             }
-            this.updateProgress(calNodeProgress(parent), parent)
+            this.updateProgress(CalNodeProgress(parent), parent)
         },
         showProgress(val) {
             return util.ConvertProgressToDisplay(val)
         },
         addTodo({ NewTodo = 'new todo...', node = this.$refs.tree[this.CurTab].root }) {
-            const newChild = this.generateInitData(NewTodo)
+            const newChild = GenerateInitData(NewTodo)
             if (!(this.CurDate in this.TabsData[this.CurTab].Content)) {
                 Vue.set(this.TabsData[this.CurTab].Content, this.CurDate, [])
             }
             this.$refs.tree[this.CurTab].append(newChild, node)
-            this.updateProgress(calNodeProgress(node), node)
+            this.updateProgress(CalNodeProgress(node), node)
         },
         removeTodo(node, data) {
             let parent = node.parent;
             this.$refs.tree[this.CurTab].remove(node)
-            this.updateProgress(calNodeProgress(parent), parent)
+            this.updateProgress(CalNodeProgress(parent), parent)
         },
         doneEdit: function (newval, node, data) {
             if (!newval) {
                 this.removeTodo(node)
+                return
             }
             newval = newval.trim()
             data.label = newval
-            this.SaveCurrentFile()
+            SaveMarkdownFile()
         }
     }
 };
 
 export default TodoList;
+
+function GenerateInitData(label) {
+    return { id: markdownParser.IncreaseCurId(), label: label, progress: 0, finished: false, children: [] }
+}
+
+function CalNodeProgress(node) {
+    let childCount = node.childNodes.length
+    if (childCount === 0) {
+        return node.data.progress
+    }
+    let progressSum = 0
+    for (let child of node.childNodes) {
+        progressSum += child.data.progress
+    }
+    return progressSum / childCount
+}
+
+function UpdateCheckStatus(node) {
+    if (!node) {
+        return
+    }
+
+    if (node.data.progress === constants.MAXPROGRESS) {
+        node.checked = true
+        node.indeterminate = false
+    } else if (node.data.progress !== 0) {
+        node.indeterminate = true
+    }
+    for (let child of node.childNodes) {
+        UpdateCheckStatus(child)
+    }
+}
+
+function SaveMarkdownFile() {
+    let curTab = GetCurTab()
+    let tabsData = TodoList.data().TabsData
+    let fileName = tabsData[curTab].FileName
+    let content = tabsData[curTab].Content
+    fileOperation.SaveMarkdownFile(fileName, content)
+}
+
+function SaveUserDataFile() {
+    let files = TodoList.data().Files
+    let curTab = GetCurTab()
+    let onlyShowContentDate = GetOnlyShowContentDate()
+    fileOperation.SaveUserDataFile(constants.UserDataFile, {
+        Files: files,
+        CurTab: curTab,
+        OnlyShowContentDate: onlyShowContentDate
+    })
+}
+
+function GetCurTab() {
+    return vux.GetVuxData(constants.CurTab)
+}
+
+function SetCurTab(newData) {
+    vux.SetVuxData(newData, constants.CurTab)
+    SaveUserDataFile()
+}
+
+function GetOnlyShowContentDate() {
+    return vux.GetVuxData(constants.OnlyShowContentDate)
+}
+
+function SetOnlyShowContentDate(newData) {
+    vux.SetVuxData(newData, constants.OnlyShowContentDate)
+    SaveUserDataFile()
+}
 
 ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
     let tabsData = TodoList.data().TabsData
@@ -310,7 +326,7 @@ ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
             Vue.set(storedFiles, index + originFileLength, file)
             if (++count === Files.length) {
                 Vue.set(TodoList.data(), constants.CurTab, (originLength + Files.length - 1).toString())
-                vux.SetCurTab((originLength + Files.length - 1).toString())
+                SetCurTab((originLength + Files.length - 1).toString())
             }
         })
     })
@@ -328,8 +344,12 @@ ipcRenderer.on(constants.FileSavedChannel, (evt, filename) => {
         }
         Vue.set(tabsData, fileIndex, initData)
         Vue.set(storedFiles, fileIndex, filename)
-        vux.SetCurTab(fileIndex.toString())
+        SetCurTab(fileIndex.toString())
     })
+})
+
+ipcRenderer.on(constants.ToggleSwitchChannel, (evt, menuItem) => {
+    SetOnlyShowContentDate(menuItem.checked)
 })
 </script>
 
