@@ -77,24 +77,36 @@ app.on('ready', () => {
     createWindow()
     fileOperation.LoadUserDataFile(constants.UserDataFile, userData => {
         let files = userData[constants.Files]
-        let curTab = parseInt(userData[constants.CurTab])
+        let lastOpenedTab = parseInt(userData[constants.CurTab])
+        let lastOpenedTabName = files[lastOpenedTab]
         let onlyShowContentDate = userData[constants.OnlyShowContentDate]
-        if (isNaN(curTab) || curTab < 0 || curTab >= files.length) {
-            curTab = 0
-        }
-        curTab = curTab.toString()
-        global.sharedData[constants.Files] = files
-        global.sharedData[constants.CurTab] = curTab
         global.sharedData[constants.OnlyShowContentDate] = onlyShowContentDate
         createMenu(onlyShowContentDate)
         let count = 0
-        files.forEach((file, index) => {
-            fileOperation.LoadMarkdownFile(file, res => {
-                global.sharedData[constants.TabsData][index] = util.GenerateNewTabData(file, res)
+        let tempFiles = []
+        let tempTabsData = []
+        let handleResult = function (file, index) {
+            return function (res, cancelled) {
+                if (!cancelled) {
+                    tempTabsData[index] = util.GenerateNewTabData(file, res)
+                    tempFiles[index] = file
+                }
                 if (++count === files.length) {
                     global.sharedData[constants.CurId] = markdownParser.CurId
+                    global.sharedData[constants.TabsData] = util.RemoveNullElementFromArray(tempTabsData)
+                    global.sharedData[constants.Files] = util.RemoveNullElementFromArray(tempFiles)
+                    // find the lastOpenedTab index
+                    lastOpenedTab = global.sharedData[constants.Files].indexOf(lastOpenedTabName)
+                    if (isNaN(lastOpenedTab) || lastOpenedTab < 0 || lastOpenedTab >= files.length) {
+                        lastOpenedTab = 0
+                    }
+                    lastOpenedTab = lastOpenedTab.toString()
+                    global.sharedData[constants.CurTab] = lastOpenedTab
                 }
-            })
+            }
+        }
+        files.forEach((file, index) => {
+            fileOperation.LoadMarkdownFile(file, handleResult(file, index))
         })
     })
 })
@@ -113,11 +125,6 @@ app.on('activate', () => {
 
 ipcMain.on(constants.FileSaveChannel, () => {
     fileOperation.SaveMarkdownDialog(mainWindow)
-})
-
-ipcMain.on(constants.OpenDialogChannel, (evt, msg, type) => {
-    console.log(evt, msg, type)
-    util.ShowDialog(msg, type)
 })
 
 /**

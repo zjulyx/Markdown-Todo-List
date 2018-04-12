@@ -43,7 +43,6 @@ import * as util from "../../utils/util";
 import * as vux from "../store/vuxOperation";
 
 import { ipcRenderer, remote } from 'electron'
-import path from 'path'
 
 let initSharedData = JSON.parse(JSON.stringify(remote.getGlobal('sharedData')))
 
@@ -137,6 +136,7 @@ let TodoList = {
     },
     mounted() {
         this.updateCheckStatusAtFirst(this.CurDate)
+        SaveUserDataFile()
     },
     methods: {
         handleTitleEdit() {
@@ -282,9 +282,9 @@ function UpdateCheckStatus(node) {
 function SaveMarkdownFile() {
     let curTab = GetCurTab()
     let tabsData = TodoList.data().TabsData
-    let fileName = tabsData[curTab].FileName
+    let filename = tabsData[curTab].FileName
     let content = tabsData[curTab].Content
-    fileOperation.SaveMarkdownFile(fileName, content)
+    fileOperation.SaveMarkdownFile(filename, content)
 }
 
 function SaveUserDataFile() {
@@ -317,27 +317,40 @@ function SetOnlyShowContentDate(newData) {
 }
 
 ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
-    let tabsData = TodoList.data().TabsData
-    let storedFiles = TodoList.data().Files
-    let originLength = tabsData.length
-    let originFileLength = storedFiles.length
+    let tempTabsData = TodoList.data().TabsData
+    let tempFiles = TodoList.data().Files
+    let originLength = tempTabsData.length
+    let originFileLength = tempFiles.length
     let count = 0
-    Files.forEach((file, index) => {
-        fileOperation.LoadMarkdownFile(file, res => {
-            Vue.set(tabsData, index + originLength, util.GenerateNewTabData(file, res))
-            Vue.set(storedFiles, index + originFileLength, file)
-            if (++count === Files.length) {
-                Vue.set(TodoList.data(), constants.CurTab, (originLength + Files.length - 1).toString())
-                SetCurTab((originLength + Files.length - 1).toString())
+    let handleResult = function (file, index) {
+        return function (res, cancelled) {
+            if (!cancelled) {
+                tempTabsData[index + originLength] = util.GenerateNewTabData(file, res)
+                tempFiles[index + originFileLength] = file
             }
-        })
+            if (++count === Files.length) {
+                // global.sharedData[constants.CurId] = markdownParser.CurId
+                tempTabsData = util.RemoveNullElementFromArray(tempTabsData)
+                tempFiles = util.RemoveNullElementFromArray(tempFiles)
+                tempTabsData.forEach((item, curIndex) => {
+                    Vue.set(tempTabsData, curIndex, tempTabsData[curIndex])
+                })
+                tempFiles.forEach((item, curIndex) => {
+                    Vue.set(tempFiles, curIndex, tempFiles[curIndex])
+                })
+                SetCurTab((tempTabsData.length - 1).toString())
+            }
+        }
+    }
+    Files.forEach((file, index) => {
+        fileOperation.LoadMarkdownFile(file, handleResult(file, index))
     })
 })
 
 ipcRenderer.on(constants.FileSavedChannel, (evt, filename) => {
     let tabsData = TodoList.data().TabsData
     let storedFiles = TodoList.data().Files
-    let initObj = { Title: path.basename(filename, path.extname(filename)) }
+    let initObj = { Title: fileOperation.GetFileNameWithoutExtension(filename) }
     let initData = util.GenerateNewTabData(filename, initObj)
     fileOperation.SaveMarkdownFile(filename, initObj, () => {
         let fileIndex = storedFiles.indexOf(filename)

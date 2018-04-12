@@ -4,7 +4,10 @@ import { dialog } from 'electron'
 import * as markdownParser from './markdownParser'
 import * as constants from '../model/constants';
 
-const fileDialogFilters = [{ name: 'Markdown Files', extensions: ['md'] }, { name: 'All Files', extensions: ['*'] }]
+const fileDialogFilters = [
+    { name: 'Markdown Files', extensions: ['md'] },
+    { name: 'All Files', extensions: ['*'] }
+]
 
 function mkdirs(dirname, callback) {
     fs.access(dirname, err => {
@@ -20,15 +23,20 @@ function mkdirs(dirname, callback) {
     })
 }
 
-function handleFileNotExist(file, callback, initData) {
+function handleFileNotExist(file, callback, initData, jsonParse = true) {
+    let initStr = jsonParse ? JSON.stringify(initData) : markdownParser.convertObjToMarkDown(initData, file)
     mkdirs(path.dirname(file), () => {
-        fs.writeFile(file, JSON.stringify(initData), err => {
+        fs.writeFile(file, initStr, err => {
             if (err) {
                 console.log(err)
             }
             callback(initData)
         })
     })
+}
+
+export function GetFileNameWithoutExtension(filename) {
+    return path.basename(filename, path.extname(filename))
 }
 
 export function OpenMarkdownFile(mainWindow) {
@@ -45,7 +53,7 @@ export function OpenMarkdownFile(mainWindow) {
 export function LoadMarkdownFile(markdownFile, callback) {
     fs.access(markdownFile, (err) => {
         if (err) {
-            handleFileNotExist(markdownFile, callback, {})
+            handleFileNotExist(markdownFile, callback, {}, false)
         } else {
             markdownParser.convertMarkDownToObj(markdownFile, callback)
         }
@@ -72,7 +80,7 @@ export function LoadUserDataFile(userDataFile, callback) {
 }
 
 export function SaveMarkdownFile(markdownFile, obj, callback) {
-    fs.writeFile(markdownFile, markdownParser.convertObjToMarkDown(obj), err => {
+    fs.writeFile(markdownFile, markdownParser.convertObjToMarkDown(obj, markdownFile), err => {
         if (err) {
             console.log(err)
         }

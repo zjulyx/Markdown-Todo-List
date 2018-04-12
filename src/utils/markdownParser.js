@@ -2,6 +2,7 @@ import fs from 'fs'
 import readline from 'readline'
 import * as constants from '../model/constants'
 import * as util from './util'
+import * as fileOperation from './fileOperation'
 
 export let CurId = 0
 
@@ -17,8 +18,8 @@ function convertEachDayArrToMarkDown(arr, preBlank = '') {
     return res
 }
 
-export function convertObjToMarkDown(obj) {
-    let res = `# ${obj[constants.Title]}\r\n\r\n`
+export function convertObjToMarkDown(obj, filename) {
+    let res = `# ${obj[constants.Title] || fileOperation.GetFileNameWithoutExtension(filename)}\r\n\r\n`
     let keyDict = Object.keys(obj).sort((a, b) => { return new Date(a) - new Date(b) })
     for (let [index, curDate] of keyDict.entries()) {
         if (curDate !== constants.Title) {
@@ -68,6 +69,7 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
     let stack = []
     let curDate = util.FormatDateTime()
     let hasError = false
+    let canceled = false
     markdown.on('line', line => {
         try {
             switch (line[0]) {
@@ -110,15 +112,36 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
             }
         } catch (ex) {
             // find error in parse
-            console.log(ex)
-            // todo: change it to confirm
-            util.ShowDialog(`Error in ${markdownFile}!!!\r\n${ex}\r\nWill reset its data.`, constants.DialogTypes.Error)
+            markdown.pause()
             hasError = true
+            let err = `Error in ${markdownFile}!!!\r\n${ex}\r\n`
+            if (process.defaultApp) {
+                // main process
+                canceled = true
+                markdown.close()
+                util.ShowDialog(`${err}Cancel open it!`, {
+                    type: constants.DialogTypes.error
+                })
+            } else {
+                // renderer process
+                util.ShowDialog(`${err}Will reset its data. Are you sure?`, {
+                    type: constants.DialogTypes.question,
+                    resolve: () => {
+                        console.log('resolve')
+                        markdown.close()
+                    },
+                    reject: () => {
+                        console.log('reject')
+                        canceled = true
+                        markdown.close()
+                    }
+                })
+            }
         }
     })
 
     markdown.on('close', () => {
         res = hasError ? {} : res
-        finishCallback(res)
+        finishCallback(res, canceled)
     })
 }
