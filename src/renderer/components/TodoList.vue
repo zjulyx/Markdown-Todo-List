@@ -2,11 +2,7 @@
     <div>
         <el-tabs v-model="CurTab" type="card" editable @edit="handleTabsEdit" @click.middle.native="handleTabsEdit(CurTab, 'remove')">
             <el-tab-pane :key="index" v-for="(item,index) in TabsData" :label="item.FileName" :name="index.toString()">
-                <el-tag type="danger" hit @dblclick.native="handleTitleEdit" v-if="item.TitleNotEditing">
-                    <i class="el-icon-tickets"></i>
-                    {{item.Content.Title}} (Double click to edit)
-                </el-tag>
-                <el-input prefix-icon="el-icon-edit" :value="item.Content.Title" @blur="event=>titleEdited(event.target.value)" @change="val=>titleEdited(val)" v-else>
+                <el-input ref="titleEdit" prefix-icon="el-icon-edit" :value="item.Content.Title+(item.TitleNotEditing?' (Double click to edit)':'')" @blur="event=>titleEdited(event.target.value)" @change="val=>titleEdited(val)" @dblclick.native.prevent="handleTitleEdit" :disabled="item.TitleNotEditing">
                 </el-input>
                 <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="FilterText" v-if="!item.Content[item.CurDate] || item.Content[item.CurDate].length!==0">
                 </el-input>
@@ -52,7 +48,6 @@ let TodoList = {
         return {
             TabsData: initSharedData.TabsData,
             Files: initSharedData.Files,
-            TitleNotEditing: true,
             MAXPROGRESS: constants.MAXPROGRESS,
             FilterDate: true,
             pickerOptions: {
