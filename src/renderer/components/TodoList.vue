@@ -316,12 +316,28 @@ function SetOnlyShowContentDate(newData) {
     SaveUserDataFile()
 }
 
+function FilterDuplicateFiles(currentFiles, newFiles, findDupCallback) {
+    let res = []
+    newFiles.forEach(item => {
+        let curIndex = currentFiles.indexOf(item)
+        if (curIndex === -1) {
+            res.push(item)
+        } else {
+            findDupCallback(curIndex.toString())
+        }
+    })
+    return res
+}
+
 ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
     let tempTabsData = TodoList.data().TabsData
     let tempFiles = TodoList.data().Files
     let originLength = tempTabsData.length
     let originFileLength = tempFiles.length
     let count = 0
+    Files = FilterDuplicateFiles(tempFiles, Files, (newCurTab) => {
+        SetCurTab(newCurTab)
+    })
     let handleResult = function (file, index) {
         return function (res, cancelled) {
             if (!cancelled) {
