@@ -1,8 +1,8 @@
 <template>
     <div>
-        <el-tabs v-model="CurTab" type="card" editable @edit="handleTabsEdit" @dblclick.native="handleTabsEdit(CurTab, 'remove')" @click.middle.native="handleTabsEdit(CurTab, 'remove')">
+        <el-tabs v-model="CurTab" type="card" editable @edit="handleTabsEdit" @click.middle.native="handleTabsEdit(CurTab, 'remove')">
             <el-tab-pane :key="index" v-for="(item,index) in TabsData" :label="item.FileName" :name="index.toString()">
-                <el-tag type="danger" hit @dblclick.native="handleTitleEdit" v-if="TitleNotEditing">
+                <el-tag type="danger" hit @dblclick.native="handleTitleEdit" v-if="item.TitleNotEditing">
                     <i class="el-icon-tickets"></i>
                     {{item.Content.Title}} (Double click to edit)
                 </el-tag>
@@ -140,10 +140,10 @@ let TodoList = {
     },
     methods: {
         handleTitleEdit() {
-            this.TitleNotEditing = false
+            this.TabsData[this.CurTab].TitleNotEditing = false
         },
         titleEdited(newTitle) {
-            this.TitleNotEditing = true
+            this.TabsData[this.CurTab].TitleNotEditing = true
             this.TabsData[this.CurTab].Content.Title = newTitle
             SaveMarkdownFile()
         },

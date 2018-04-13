@@ -29,6 +29,7 @@ export function GenerateNewTabData(filename, content) {
     return {
         [constants.Content]: content,
         [constants.FileName]: filename,
+        [constants.TitleNotEditing]: true,
         [constants.CurDate]: today,
         [constants.FilterText]: '',
         [constants.NewTodo]: ''
