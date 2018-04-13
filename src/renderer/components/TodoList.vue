@@ -149,7 +149,7 @@ let TodoList = {
         },
         handleTabsEdit(targetName, action) {
             if (action === 'add') {
-                ipcRenderer.send(constants.FileSaveChannel)
+                ipcRenderer.send(constants.FileOpenChannel)
             }
             if (action === 'remove') {
                 this.TabsData.splice(parseInt(targetName), 1)
@@ -344,22 +344,6 @@ ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
     }
     Files.forEach((file, index) => {
         fileOperation.LoadMarkdownFile(file, handleResult(file, index))
-    })
-})
-
-ipcRenderer.on(constants.FileSavedChannel, (evt, filename) => {
-    let tabsData = TodoList.data().TabsData
-    let storedFiles = TodoList.data().Files
-    let initObj = { Title: fileOperation.GetFileNameWithoutExtension(filename) }
-    let initData = util.GenerateNewTabData(filename, initObj)
-    fileOperation.SaveMarkdownFile(filename, initObj, () => {
-        let fileIndex = storedFiles.indexOf(filename)
-        if (fileIndex === -1) {
-            fileIndex = tabsData.length
-        }
-        Vue.set(tabsData, fileIndex, initData)
-        Vue.set(storedFiles, fileIndex, filename)
-        SetCurTab(fileIndex.toString())
     })
 })
 

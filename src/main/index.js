@@ -123,8 +123,8 @@ app.on('activate', () => {
     }
 })
 
-ipcMain.on(constants.FileSaveChannel, () => {
-    fileOperation.SaveMarkdownDialog(mainWindow)
+ipcMain.on(constants.FileOpenChannel, () => {
+    fileOperation.OpenMarkdownFile(mainWindow)
 })
 
 /**

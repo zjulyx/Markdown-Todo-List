@@ -16,9 +16,8 @@ export const FileName = 'FileName'
 export const Files = 'Files'
 export const OnlyShowContentDate = 'OnlyShowContentDate'
 
+export const FileOpenChannel = "FileOpenChannel"
 export const FileOpenedChannel = "FileOpenedChannel"
-export const FileSaveChannel = "FileSaveChannel"
-export const FileSavedChannel = "FileSavedChannel"
 export const ToggleSwitchChannel = "ToggleSwitchChannel"
 
 export const DialogTypes = {

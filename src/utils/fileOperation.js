@@ -41,7 +41,7 @@ export function GetFileNameWithoutExtension(filename) {
 
 export function OpenMarkdownFile(mainWindow) {
     dialog.showOpenDialog({
-        properties: ['openFile', 'multiSelections'],
+        properties: ['openFile', 'multiSelections', 'promptToCreate'],
         filters: fileDialogFilters
     }, (files) => {
         if (files) {
@@ -95,17 +95,6 @@ export function SaveUserDataFile(userDataFile, obj) {
     fs.writeFile(userDataFile, JSON.stringify(obj), err => {
         if (err) {
             console.log(err)
-        }
-    })
-}
-
-export function SaveMarkdownDialog(mainWindow) {
-    dialog.showSaveDialog({
-        title: 'Save New Todo File',
-        filters: fileDialogFilters
-    }, (filename) => {
-        if (filename) {
-            mainWindow.webContents.send(constants.FileSavedChannel, filename)
         }
     })
 }
