@@ -57,3 +57,9 @@ export function ShowDialog(msg, { type = constants.DialogTypes.error, resolve = 
         }
     })
 }
+
+export function ShowError(msg) {
+    ShowDialog(msg, {
+        type: constants.DialogTypes.error
+    })
+}

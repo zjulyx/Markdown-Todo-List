@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { dialog } from 'electron'
 import * as markdownParser from './markdownParser'
+import * as util from './util'
 import * as constants from '../model/constants';
 
 const fileDialogFilters = [
@@ -28,7 +29,7 @@ function handleFileNotExist(file, callback, initData, jsonParse = true) {
     mkdirs(path.dirname(file), () => {
         fs.writeFile(file, initStr, err => {
             if (err) {
-                console.log(err)
+                util.ShowError(`${err} in handleFileNotExist!`)
             }
             callback(initData)
         })
@@ -82,7 +83,7 @@ export function LoadUserDataFile(userDataFile, callback) {
 export function SaveMarkdownFile(markdownFile, obj, callback) {
     fs.writeFile(markdownFile, markdownParser.convertObjToMarkDown(obj, markdownFile), err => {
         if (err) {
-            console.log(err)
+            util.ShowError(`${err} in SaveMarkdownFile!`)
         }
 
         if (callback) {
@@ -94,7 +95,7 @@ export function SaveMarkdownFile(markdownFile, obj, callback) {
 export function SaveUserDataFile(userDataFile, obj) {
     fs.writeFile(userDataFile, JSON.stringify(obj), err => {
         if (err) {
-            console.log(err)
+            util.ShowError(`${err} in SaveUserDataFile!`)
         }
     })
 }

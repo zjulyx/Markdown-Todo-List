@@ -131,9 +131,7 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
                 // main process
                 canceled = true
                 markdown.close()
-                util.ShowDialog(`${err}Cancel open it!`, {
-                    type: constants.DialogTypes.error
-                })
+                util.ShowError(`${err}Cancel open it!`)
             } else {
                 // renderer process
                 util.ShowDialog(`${err}Will reset its data. Are you sure?`, {
@@ -151,7 +149,7 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
     })
 
     markdown.on('close', () => {
-        res = hasError ? {} : res
+        res = hasError ? { [constants.Title]: fileOperation.GetFileNameWithoutExtension(markdownFile) } : res
         finishCallback(res, canceled)
     })
 }
