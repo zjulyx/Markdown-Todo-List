@@ -35,6 +35,7 @@ import Vue from 'vue'
 
 import * as constants from "../../model/constants";
 import * as fileOperation from "../../utils/fileOperation";
+import * as markdownParser from "../../utils/markdownParser";
 import * as util from "../../utils/util";
 import * as vux from "../store/vuxOperation";
 
@@ -109,8 +110,6 @@ let TodoList = {
                 SetCurTab(newData)
                 this.updateCheckStatusAtFirst(this.CurDate)
                 // Add watcher for new opended tab
-                // SetWatcherForObj(this.TabsData)
-                // SetWatcherForObj(this.Files)
                 Vue.set(this.TabsData, newData, this.TabsData[newData])
                 Vue.set(this.Files, newData, this.Files[newData])
             },
@@ -137,7 +136,6 @@ let TodoList = {
         }
     },
     mounted() {
-        console.log(vux.GetVuxData(constants.CurId))
         this.updateCheckStatusAtFirst(this.CurDate)
         SaveUserDataFile()
     },
@@ -221,7 +219,6 @@ let TodoList = {
             return util.ConvertProgressToDisplay(val)
         },
         addTodo({ NewTodo = 'new todo...', node = this.$refs.tree[this.CurTab].root }) {
-            console.log(vux.GetVuxData(constants.CurId))
             const newChild = GenerateInitData(NewTodo)
             if (!(this.CurDate in this.TabsData[this.CurTab].Content)) {
                 Vue.set(this.TabsData[this.CurTab].Content, this.CurDate, [])
@@ -248,15 +245,8 @@ let TodoList = {
 
 export default TodoList;
 
-function IncreaseCurId() {
-    let curId = vux.GetVuxData(constants.CurId)
-    curId++
-    vux.SetVuxData(curId, constants.CurId)
-    return curId
-}
-
 function GenerateInitData(label) {
-    return { id: IncreaseCurId(), label: label, progress: 0, finished: false, children: [] }
+    return { id: markdownParser.IncreaseCurId(), label: label, progress: 0, finished: false, children: [] }
 }
 
 function CalNodeProgress(node) {
@@ -311,8 +301,6 @@ function GetCurTab() {
 }
 
 function SetCurTab(newData) {
-    let tabsData = TodoList.data().TabsData
-    console.log(tabsData)
     vux.SetVuxData(newData, constants.CurTab)
     SaveUserDataFile()
 }
@@ -339,16 +327,6 @@ function FilterDuplicateFiles(currentFiles, newFiles, findDupCallback) {
     return res
 }
 
-// function SetWatcherForObj(obj) {
-//     if (typeof obj !== 'object') {
-//         return
-//     }
-//     for (let key in obj) {
-//         Vue.set(obj, key, obj[key])
-//         SetWatcherForObj(obj[key])
-//     }
-// }
-
 ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
     let tempTabsData = TodoList.data().TabsData
     let tempFiles = TodoList.data().Files
@@ -365,17 +343,8 @@ ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
                 tempFiles[index + originFileLength] = file
             }
             if (++count === Files.length) {
-                // global.sharedData[constants.CurId] = markdownParser.CurId
                 tempTabsData = util.RemoveNullElementFromArray(tempTabsData)
                 tempFiles = util.RemoveNullElementFromArray(tempFiles)
-                // SetWatcherForObj(tempTabsData)
-                // SetWatcherForObj(tempFiles)
-                // tempTabsData.forEach((item, curIndex) => {
-                //     Vue.set(tempTabsData, curIndex, tempTabsData[curIndex])
-                // })
-                // tempFiles.forEach((item, curIndex) => {
-                //     Vue.set(tempFiles, curIndex, tempFiles[curIndex])
-                // })
                 SetCurTab((tempTabsData.length - 1).toString())
             }
         }

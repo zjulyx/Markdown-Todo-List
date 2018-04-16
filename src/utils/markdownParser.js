@@ -6,6 +6,18 @@ import * as fileOperation from './fileOperation'
 
 export let CurId = 0
 
+export function IncreaseCurId() {
+    if (process.defaultApp) {
+        // main process cannot access vux
+        return ++CurId
+    } else {
+        const vux = require('../renderer/store/vuxOperation')
+        let curId = vux.GetVuxData(constants.CurId)
+        vux.SetVuxData(++curId, constants.CurId)
+        return curId
+    }
+}
+
 function convertEachDayArrToMarkDown(arr, preBlank = '') {
     let res = ''
     if (arr) {
@@ -52,7 +64,7 @@ function parseTodoItem(line) {
         finished = false
     }
     return {
-        id: ++CurId,
+        id: IncreaseCurId(),
         finished: finished,
         label: label,
         progress: progress,
@@ -127,11 +139,9 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
                 util.ShowDialog(`${err}Will reset its data. Are you sure?`, {
                     type: constants.DialogTypes.question,
                     resolve: () => {
-                        console.log('resolve')
                         markdown.close()
                     },
                     reject: () => {
-                        console.log('reject')
                         canceled = true
                         markdown.close()
                     }
