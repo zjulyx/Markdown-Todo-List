@@ -25,7 +25,7 @@ export function FormatDateTime(date) {
 }
 
 export function GenerateNewTabData(filename, content) {
-    let today = FormatDateTime(new Date())
+    let today = FormatDateTime()
     return {
         [constants.Content]: content,
         [constants.FileName]: filename,

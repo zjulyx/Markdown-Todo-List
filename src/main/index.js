@@ -9,7 +9,7 @@ import * as constants from '../model/constants'
 global.sharedData = {
     [constants.Files]: [],
     [constants.TabsData]: [],
-    [constants.CurTab]: 0,
+    [constants.CurTab]: '-1',
     [constants.CurId]: 0,
     [constants.OnlyShowContentDate]: true
 }
@@ -99,6 +99,9 @@ app.on('ready', () => {
                     lastOpenedTab = global.sharedData[constants.Files].indexOf(lastOpenedTabName)
                     if (isNaN(lastOpenedTab) || lastOpenedTab < 0 || lastOpenedTab >= files.length) {
                         lastOpenedTab = 0
+                    }
+                    if (global.sharedData[constants.Files].length === 0) {
+                        lastOpenedTab = -1
                     }
                     lastOpenedTab = lastOpenedTab.toString()
                     global.sharedData[constants.CurTab] = lastOpenedTab

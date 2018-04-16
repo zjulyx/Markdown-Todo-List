@@ -100,7 +100,8 @@ let TodoList = {
     },
     computed: {
         CurDate() {
-            return this.TabsData[this.CurTab].CurDate
+            let curTabData = this.TabsData[this.CurTab]
+            return curTabData ? curTabData.CurDate : null
         },
         CurTab: {
             set(newData) {
@@ -160,6 +161,10 @@ let TodoList = {
             return data.label.indexOf(value) !== -1;
         },
         updateCheckStatusAtFirst(thisDate) {
+            if (!thisDate) {
+                return
+            }
+
             if (thisDate in this.TabsData[this.CurTab].Content) {
                 for (let rootData of this.TabsData[this.CurTab].Content[thisDate]) {
                     this.$nextTick(function () {
