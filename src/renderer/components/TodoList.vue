@@ -1,7 +1,7 @@
 <template>
     <div>
         <el-tabs v-model="CurTab" type="card" editable @edit="handleTabsEdit" @click.middle.native="handleTabsEdit(CurTab, 'remove')">
-            <el-alert v-if="CurTab<0||CurTab>=TabsData.length" title="Click + to open or create todo list file" type="info" :closable="false" show-icon center> </el-alert>
+            <el-alert title="Click + to open or create todo list file" type="info" :closable="false" show-icon center v-if="ShowNoTabHelp"> </el-alert>
             <el-tab-pane :key="index" v-for="(item,index) in TabsData" :label="item.FileName" :name="index.toString()" v-else>
                 <el-tooltip content="Double click to edit title" placement="right" effect="light" v-if="item.TitleNotEditing">
                     <el-alert :title="item.Content.Title" type="warning" :closable="false" @dblclick.native.prevent="handleTitleEdit" center> </el-alert>
@@ -12,7 +12,7 @@
                 <el-date-picker v-model="item.CurDate" align="center" type="date" placeholder="Choose Date" :picker-options="pickerOptions" value-format="yyyy-MM-dd" :size="ItemSize" style="width:100%">
                 </el-date-picker>
 
-                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo Filter..." :size="ItemSize" v-model="FilterText" v-if="!item.Content[item.CurDate] || item.Content[item.CurDate].length!==0">
+                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo Filter..." :size="ItemSize" v-model="FilterText" v-if="showFilterBar(item)">
                 </el-input>
                 <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
                     <span slot-scope="{ node, data }">
@@ -29,7 +29,7 @@
                         </span>
                     </span>
                 </el-tree>
-                <el-input placeholder="Add new Todo..." v-model="item.NewTodo" @keyup.enter.native="addTodo({NewTodo:item.NewTodo})" clearable :size="ItemSize">
+                <el-input placeholder="Add new Todo..." v-model="item.NewTodo" @keyup.enter.native="addTodo({NewTodo : item.NewTodo})" clearable :size="ItemSize">
                 </el-input>
             </el-tab-pane>
         </el-tabs>
@@ -108,6 +108,9 @@ let TodoList = {
         };
     },
     computed: {
+        ShowNoTabHelp() {
+            return this.CurTab < 0 || this.CurTab >= this.TabsData.length
+        },
         CurDate() {
             let curTabData = this.TabsData[this.CurTab]
             return curTabData ? curTabData.CurDate : null
@@ -147,6 +150,9 @@ let TodoList = {
         SaveUserDataFile()
     },
     methods: {
+        showFilterBar(item) {
+            return !item.Content[item.CurDate] || item.Content[item.CurDate].length !== 0
+        },
         handleTitleEdit() {
             this.TabsData[this.CurTab].TitleNotEditing = false
         },
