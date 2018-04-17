@@ -42,6 +42,7 @@ export function GetFileNameWithoutExtension(filename) {
 
 export function OpenMarkdownFile(mainWindow) {
     dialog.showOpenDialog({
+        title: 'Open or create todo list markdown file',
         properties: ['openFile', 'multiSelections', 'promptToCreate'],
         filters: fileDialogFilters
     }, (files) => {

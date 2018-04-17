@@ -1,29 +1,35 @@
 <template>
     <div>
         <el-tabs v-model="CurTab" type="card" editable @edit="handleTabsEdit" @click.middle.native="handleTabsEdit(CurTab, 'remove')">
-            <el-tab-pane :key="index" v-for="(item,index) in TabsData" :label="item.FileName" :name="index.toString()">
-                <el-input ref="titleEdit" prefix-icon="el-icon-edit" :value="item.Content.Title+(item.TitleNotEditing?' (Double click to edit)':'')" @blur="event=>titleEdited(event.target.value)" @change="val=>titleEdited(val)" @dblclick.native.prevent="handleTitleEdit" :disabled="item.TitleNotEditing">
+            <el-alert v-if="CurTab<0||CurTab>=TabsData.length" title="Click + to open or create todo list file" type="info" :closable="false" show-icon center> </el-alert>
+            <el-tab-pane :key="index" v-for="(item,index) in TabsData" :label="item.FileName" :name="index.toString()" v-else>
+                <el-tooltip content="Double click to edit title" placement="right" effect="light" v-if="item.TitleNotEditing">
+                    <el-alert :title="item.Content.Title" type="warning" :closable="false" @dblclick.native.prevent="handleTitleEdit" center> </el-alert>
+                </el-tooltip>
+                <el-input ref="titleEdit" prefix-icon="el-icon-edit" :value="item.Content.Title" @blur="event=>titleEdited(event.target.value)" @change="val=>titleEdited(val)" @dblclick.native.prevent="handleTitleEdit" :size="ItemSize" v-else>
                 </el-input>
-                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo filter..." size="mini" v-model="FilterText" v-if="!item.Content[item.CurDate] || item.Content[item.CurDate].length!==0">
+
+                <el-date-picker v-model="item.CurDate" align="center" type="date" placeholder="Choose Date" :picker-options="pickerOptions" value-format="yyyy-MM-dd" :size="ItemSize" style="width:100%">
+                </el-date-picker>
+
+                <el-input clearable prefix-icon="el-icon-search" placeholder="Todo Filter..." :size="ItemSize" v-model="FilterText" v-if="!item.Content[item.CurDate] || item.Content[item.CurDate].length!==0">
                 </el-input>
                 <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
                     <span slot-scope="{ node, data }">
-                        <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" size="mini">
+                        <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" :size="ItemSize">
                             <el-container slot="append">
-                                <el-tooltip :content="showProgress(data.progress)" placement="top">
-                                    <el-rate size="mini" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{updateProgress(val,node)}" :disabled="!node.isLeaf" disabled-void-color="#C6D1DE" disabled-void-icon-class="el-icon-star-off"></el-rate>
+                                <el-tooltip :content="showProgress(data.progress)" placement="right" effect="light">
+                                    <el-rate :size="ItemSize" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{updateProgress(val,node)}" :disabled="!node.isLeaf" disabled-void-color="#C6D1DE" disabled-void-icon-class="el-icon-star-off"></el-rate>
                                 </el-tooltip>
                             </el-container>
                         </el-input>
                         <span>
-                            <el-button type="primary" icon="el-icon-circle-plus" @click="() => addTodo({node:node})" size="mini"></el-button>
-                            <el-button type="danger" icon="el-icon-delete" @click="() => removeTodo(node, data)" size="mini"></el-button>
+                            <el-button type="primary" icon="el-icon-circle-plus" @click="() => addTodo({node:node})" :size="ItemSize"></el-button>
+                            <el-button type="danger" icon="el-icon-delete" @click="() => removeTodo(node, data)" :size="ItemSize"></el-button>
                         </span>
                     </span>
                 </el-tree>
-                <el-date-picker v-model="item.CurDate" align="right" type="date" placeholder="Choose Date" :picker-options="pickerOptions" value-format="yyyy-MM-dd">
-                </el-date-picker>
-                <el-input placeholder="Add new Todo" v-model="item.NewTodo" @keyup.enter.native="addTodo({NewTodo:item.NewTodo})" clearable>
+                <el-input placeholder="Add new Todo..." v-model="item.NewTodo" @keyup.enter.native="addTodo({NewTodo:item.NewTodo})" clearable :size="ItemSize">
                 </el-input>
             </el-tab-pane>
         </el-tabs>
@@ -51,6 +57,7 @@ let TodoList = {
             Files: initSharedData.Files,
             MAXPROGRESS: constants.MAXPROGRESS,
             FilterDate: true,
+            ItemSize: 'mini',
             pickerOptions: {
                 disabledDate: time => {
                     let disabled = time.getTime() > Date.now()
