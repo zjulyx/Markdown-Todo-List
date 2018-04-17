@@ -68,9 +68,9 @@ let TodoList = {
             pickerOptions: {
                 disabledDate: time => {
                     let disabled = time.getTime() > Date.now()
-                    if (GetOnlyShowContentDate() && this.TabsData[this.CurTab]) {
+                    if (GetOnlyShowContentDate() && this.CurTabData) {
                         let formatedTime = util.FormatDateTime(time)
-                        disabled = disabled || !(formatedTime in this.TabsData[this.CurTab].Content) || this.TabsData[this.CurTab].Content[formatedTime].length === 0
+                        disabled = disabled || !(formatedTime in this.CurTabContent) || this.CurTabContent[formatedTime].length === 0
                         // today will always be available
                         disabled = disabled && formatedTime !== util.FormatDateTime()
                     }
@@ -107,7 +107,7 @@ let TodoList = {
                             const date = new Date();
                             let today = util.FormatDateTime(date)
                             if (today !== this.CurDate) {
-                                Vue.set(this.TabsData[this.CurTab].Content, today, this.TabsData[this.CurTab].Content[this.CurDate])
+                                Vue.set(this.CurTabContent, today, this.CurTabContent[this.CurDate])
                                 SaveMarkdownFile()
                             }
                             picker.$emit('pick', date);
@@ -120,8 +120,14 @@ let TodoList = {
         ShowNoTabHelp() {
             return this.CurTab < 0 || this.CurTab >= this.TabsData.length
         },
+        CurTabData() {
+            return this.TabsData[this.CurTab]
+        },
+        CurTabContent() {
+            return this.CurTabData.Content
+        },
         CurDate() {
-            let curTabData = this.TabsData[this.CurTab]
+            let curTabData = this.CurTabData
             return curTabData ? curTabData.CurDate : null
         },
         CurTab: {
@@ -138,10 +144,10 @@ let TodoList = {
         },
         FilterText: {
             set(newData) {
-                this.TabsData[this.CurTab].FilterText = newData
+                this.CurTabData.FilterText = newData
             },
             get() {
-                let curData = this.TabsData[this.CurTab].FilterText
+                let curData = this.CurTabData.FilterText
                 if (this.$refs.tree && this.$refs.tree[this.CurTab]) {
                     this.$refs.tree[this.CurTab].filter(curData);
                 }
@@ -181,11 +187,11 @@ let TodoList = {
             return node === node.parent.childNodes[node.parent.childNodes.length - 1]
         },
         handleTitleEdit() {
-            this.TabsData[this.CurTab].TitleNotEditing = false
+            this.CurTabData.TitleNotEditing = false
         },
         titleEdited(newTitle) {
-            this.TabsData[this.CurTab].TitleNotEditing = true
-            this.TabsData[this.CurTab].Content.Title = newTitle
+            this.CurTabData.TitleNotEditing = true
+            this.CurTabContent.Title = newTitle
             SaveMarkdownFile()
         },
         handleTabsEdit(targetName, action) {
@@ -210,14 +216,14 @@ let TodoList = {
                 return
             }
 
-            if (thisDate in this.TabsData[this.CurTab].Content) {
-                for (let rootData of this.TabsData[this.CurTab].Content[thisDate]) {
+            if (thisDate in this.CurTabContent) {
+                for (let rootData of this.CurTabContent[thisDate]) {
                     this.$nextTick(function () {
                         UpdateCheckStatus(this.$refs.tree[this.CurTab].getNode(rootData))
                     })
                 }
             } else {
-                Vue.set(this.TabsData[this.CurTab].Content, thisDate, [])
+                Vue.set(this.CurTabContent, thisDate, [])
                 SaveMarkdownFile()
             }
         },
@@ -261,8 +267,8 @@ let TodoList = {
         addTodo({ NewTodo, node = this.$refs.tree[this.CurTab].root }) {
             NewTodo = NewTodo || `New Todo ${this.increaseNewTodoId()}`
             const newChild = GenerateInitData(NewTodo)
-            if (!(this.CurDate in this.TabsData[this.CurTab].Content)) {
-                Vue.set(this.TabsData[this.CurTab].Content, this.CurDate, [])
+            if (!(this.CurDate in this.CurTabContent)) {
+                Vue.set(this.CurTabContent, this.CurDate, [])
             }
             this.$refs.tree[this.CurTab].append(newChild, node)
             this.updateProgress(CalNodeProgress(node), node)
