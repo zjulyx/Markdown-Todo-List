@@ -62,8 +62,10 @@ let TodoList = {
                 disabledDate: time => {
                     let disabled = time.getTime() > Date.now()
                     if (GetOnlyShowContentDate() && this.TabsData[this.CurTab]) {
-                        let sTime = util.FormatDateTime(time)
-                        disabled = disabled || !(sTime in this.TabsData[this.CurTab].Content) || this.TabsData[this.CurTab].Content[sTime].length === 0
+                        let formatedTime = util.FormatDateTime(time)
+                        disabled = disabled || !(formatedTime in this.TabsData[this.CurTab].Content) || this.TabsData[this.CurTab].Content[formatedTime].length === 0
+                        // today will always be available
+                        disabled = disabled && formatedTime !== util.FormatDateTime()
                     }
 
                     return disabled
