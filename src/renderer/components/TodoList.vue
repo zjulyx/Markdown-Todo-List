@@ -14,7 +14,7 @@
 
                 <el-input clearable prefix-icon="el-icon-search" placeholder="Todo Filter..." :size="ItemSize" v-model="FilterText" v-if="showFilterBar(item)">
                 </el-input>
-                <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
+                <el-tree highlight-current :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
                     <span slot-scope="{ node, data }">
                         <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" :size="ItemSize">
                             <el-container slot="append">
@@ -24,12 +24,13 @@
                             </el-container>
                         </el-input>
                         <span>
-                            <el-button type="primary" icon="el-icon-circle-plus" @click="() => addTodo({node:node})" :size="ItemSize"></el-button>
+                            <el-button type="primary" icon="el-icon-circle-plus-outline" @click="() => addTodo({node:node})" :size="ItemSize"></el-button>
+                            <!-- <el-button type="primary" icon="el-icon-circle-plus-outline" @click="() => addTodo()" :size="ItemSize"></el-button> -->
                             <el-button type="danger" icon="el-icon-delete" @click="() => removeTodo(node, data)" :size="ItemSize"></el-button>
                         </span>
                     </span>
                 </el-tree>
-                <el-input placeholder="Add new Todo..." v-model="item.NewTodo" @keyup.enter.native="addTodo({NewTodo : item.NewTodo})" clearable :size="ItemSize">
+                <el-input placeholder="Add New Todo..." v-model="item.NewTodo" @keyup.enter.native="addTodo({NewTodo : item.NewTodo})" clearable :size="ItemSize">
                 </el-input>
             </el-tab-pane>
         </el-tabs>
@@ -58,6 +59,7 @@ let TodoList = {
             MAXPROGRESS: constants.MAXPROGRESS,
             FilterDate: true,
             ItemSize: 'mini',
+            NewTodoIdMap: {},
             pickerOptions: {
                 disabledDate: time => {
                     let disabled = time.getTime() > Date.now()
@@ -152,6 +154,18 @@ let TodoList = {
         SaveUserDataFile()
     },
     methods: {
+        increaseNewTodoId() {
+            let CurFileName = this.Files[this.CurTab]
+            if (!(CurFileName in this.NewTodoIdMap)) {
+                this.NewTodoIdMap[CurFileName] = {}
+            }
+
+            if (!(this.CurDate in this.NewTodoIdMap[CurFileName])) {
+                this.NewTodoIdMap[CurFileName][this.CurDate] = 0
+            }
+
+            return this.NewTodoIdMap[CurFileName][this.CurDate]++
+        },
         showFilterBar(item) {
             return !item.Content[item.CurDate] || item.Content[item.CurDate].length !== 0
         },
@@ -233,7 +247,8 @@ let TodoList = {
         showProgress(val) {
             return util.ConvertProgressToDisplay(val)
         },
-        addTodo({ NewTodo = 'new todo...', node = this.$refs.tree[this.CurTab].root }) {
+        addTodo({ NewTodo, node = this.$refs.tree[this.CurTab].root }) {
+            NewTodo = NewTodo || `New Todo ${this.increaseNewTodoId()}`
             const newChild = GenerateInitData(NewTodo)
             if (!(this.CurDate in this.TabsData[this.CurTab].Content)) {
                 Vue.set(this.TabsData[this.CurTab].Content, this.CurDate, [])
@@ -241,6 +256,30 @@ let TodoList = {
             this.$refs.tree[this.CurTab].append(newChild, node)
             this.updateProgress(CalNodeProgress(node), node)
         },
+        // addTodo({ NewTodo, node } = {}) {
+        //     NewTodo = NewTodo || `New Todo ${this.increaseNewTodoId()}`
+        //     const newChild = GenerateInitData(NewTodo)
+        //     if (!(this.CurDate in this.TabsData[this.CurTab].Content)) {
+        //         Vue.set(this.TabsData[this.CurTab].Content, this.CurDate, [])
+        //     }
+        //     // if (isAppend) {
+        //     //     this.$refs.tree[this.CurTab].append(newChild, node)
+        //     //     this.updateProgress(CalNodeProgress(node), node)
+        //     // } else {
+        //     //     this.$refs.tree[this.CurTab].insertAfter(newChild, node)
+        //     // }
+        //     if (!node) {
+        //         let curSelectedNode = this.$refs.tree[this.CurTab].getCurrentNode()
+        //         if (curSelectedNode) {
+        //             this.$refs.tree[this.CurTab].insertAfter(newChild, curSelectedNode)
+        //             return
+        //         } else {
+        //             node = this.$refs.tree[this.CurTab].root
+        //         }
+        //     }
+        //     this.$refs.tree[this.CurTab].append(newChild, node)
+        //     this.updateProgress(CalNodeProgress(node), node)
+        // },
         removeTodo(node, data) {
             let parent = node.parent;
             this.$refs.tree[this.CurTab].remove(node)
