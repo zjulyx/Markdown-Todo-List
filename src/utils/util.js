@@ -2,6 +2,10 @@ import moment from 'moment'
 import * as constants from '../model/constants'
 import { remote, dialog } from 'electron'
 
+export function IsMainProcess() {
+    return process.type === constants.MainProcess
+}
+
 export function RemoveNullElementFromArray(arr) {
     let res = []
     arr.forEach(item => {
@@ -37,7 +41,7 @@ export function GenerateNewTabData(filename, content) {
 }
 
 export function ShowDialog(msg, { type = constants.DialogTypes.error, resolve = null, reject = null } = {}) {
-    let curDialog = process.defaultApp ? dialog : remote.dialog
+    let curDialog = IsMainProcess() ? dialog : remote.dialog
 
     curDialog.showMessageBox({
         type: type,

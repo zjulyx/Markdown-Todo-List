@@ -7,7 +7,7 @@ import * as fileOperation from './fileOperation'
 export let CurId = 0
 
 export function IncreaseCurId() {
-    if (process.defaultApp) {
+    if (util.IsMainProcess()) {
         // main process cannot access vux
         return ++CurId
     } else {
@@ -127,7 +127,7 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
             markdown.pause()
             hasError = true
             let err = `Error in ${markdownFile}!!!\r\n${ex}\r\n`
-            if (process.defaultApp) {
+            if (util.IsMainProcess()) {
                 // main process
                 canceled = true
                 markdown.close()

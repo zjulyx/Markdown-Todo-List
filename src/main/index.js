@@ -1,6 +1,6 @@
 'use strict'
 
-import { app, BrowserWindow, Menu, ipcMain } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain, nativeImage } from 'electron'
 import * as fileOperation from '../utils/fileOperation'
 import * as markdownParser from '../utils/markdownParser'
 import * as util from '../utils/util'
@@ -39,6 +39,8 @@ function createWindow() {
     })
 
     mainWindow.loadURL(winURL)
+
+    mainWindow.setIcon(nativeImage.createFromPath('build/icons/icon.png'))
 
     mainWindow.on('closed', () => {
         mainWindow = null

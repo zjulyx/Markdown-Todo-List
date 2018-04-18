@@ -1,5 +1,7 @@
 import path from 'path'
 
+export const MainProcess = 'browser'
+export const RendererProcess = 'renderer'
 export const MAXPROGRESS = 4
 export const UserDataFile = path.join(process.env.APPDATA, 'MarkdownTodoList', 'UserData.json')
 
