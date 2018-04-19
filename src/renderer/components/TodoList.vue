@@ -67,12 +67,14 @@ let TodoList = {
             },
             pickerOptions: {
                 disabledDate: time => {
-                    let disabled = time.getTime() > Date.now()
+                    let now = Date.now()
+                    let disabled = time.getTime() > now
                     if (GetOnlyShowContentDate() && this.CurTabData) {
                         let formatedTime = util.FormatDateTime(time)
+                        let today = util.FormatDateTime(now)
                         disabled = disabled || !(formatedTime in this.CurTabContent) || this.CurTabContent[formatedTime].length === 0
                         // today will always be available
-                        disabled = disabled && formatedTime !== util.FormatDateTime()
+                        disabled = disabled && formatedTime !== today
                     }
 
                     return disabled

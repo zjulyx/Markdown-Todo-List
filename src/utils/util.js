@@ -25,11 +25,16 @@ export function ConvertProgressToInternal(str) {
 }
 
 export function FormatDateTime(date) {
-    return moment(date).format('YYYY-MM-DD')
+    if (!date || !moment(date).isValid()) {
+        // invalid date
+        return null
+    } else {
+        return moment(date).format('YYYY-MM-DD')
+    }
 }
 
 export function GenerateNewTabData(filename, content) {
-    let today = FormatDateTime()
+    let today = FormatDateTime(Date.now())
     return {
         [constants.Content]: content,
         [constants.FileName]: filename,

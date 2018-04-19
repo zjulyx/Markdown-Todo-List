@@ -78,49 +78,93 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
         input: markdownStream
     });
     let res = {}
-    let stack = []
-    let curDate = util.FormatDateTime()
+    let todoItemMapping = []
+    let formatedDate = util.FormatDateTime(Date.now())
     let hasError = false
     let canceled = false
     markdown.on('line', line => {
         try {
+            let curBlankCount = line.length - line.trimLeft().length
+            line = line.trimLeft()
+            if (line.length <= 1) {
+                // invalid line
+                return
+            }
+
             switch (line[0]) {
-                case ' ':
-                case '\t':
-                    if (!line.trimLeft().startsWith('-') && !line.trimLeft().startsWith('*')) {
-                        break
-                    }
-                    // use a stack to handle parent-children relationship
-                    let curNode = parseTodoItem(line.trimLeft())
-                    let curBlankCount = line.length - line.trimLeft().length
-                    let curLevel = curBlankCount / 4 + 1
-                    if (curLevel <= stack.length) {
-                        stack.splice(curLevel - 1, stack.length)
-                    }
-                    let parent = stack[stack.length - 1]
-                    parent.children.push(curNode)
-                    stack.push(curNode)
-                    break
                 case '#':
-                    if (line.startsWith('##')) {
-                        // date
-                        let arr = /##(.*)/.exec(line)
-                        curDate = util.FormatDateTime(arr[1].trim())
-                        if (!(curDate in res)) {
-                            res[curDate] = []
-                        }
-                    } else {
-                        // title
+                    if (line[1] !== '#') {
+                        // only 1 #, means title
                         let arr = /#(.*)/.exec(line)
                         res[constants.Title] = arr[1].trim()
+                    } else {
+                        // at least 2 #, means date
+                        let arr = /##(.*)/.exec(line)
+                        let strDate = arr[1].trim()
+                        formatedDate = util.FormatDateTime(strDate)
+                        if (formatedDate && !(formatedDate in res)) {
+                            // only store valid date
+                            res[formatedDate] = []
+                        }
                     }
                     break
                 case '-':
                 case '*':
-                    // root todo item, update stack
-                    let newRootTodoItem = parseTodoItem(line)
-                    res[curDate].push(newRootTodoItem)
-                    stack = [newRootTodoItem]
+                    // todo item with level
+                    let newTodoItem = parseTodoItem(line)
+                    // if (curBlankCount === 0) {
+                    //     // root todo item, directly push to root array
+                    //     res[formatedDate].push(newTodoItem)
+                    // }
+
+                    // if (!(curBlankCount in todoItemMapping)) {
+                    //     // init mapping for new level
+                    //     todoItemMapping[curBlankCount] = []
+                    // }
+                    // todoItemMapping[curBlankCount].push(newTodoItem)
+
+                    // remove all items that level is equal or higher than this
+                    todoItemMapping.splice(curBlankCount, todoItemMapping.length)
+                    todoItemMapping[curBlankCount] = newTodoItem
+
+                    let findParent = false
+                    for (let i = curBlankCount - 1; i >= 0; --i) {
+                        if (todoItemMapping[i]) {
+                            // find parent, nearest small level
+                            // let lastIndex = todoItemMapping[i].length - 1
+                            let parent = todoItemMapping[i]
+                            parent.children.push(newTodoItem)
+                            findParent = true
+                            break
+                        }
+                    }
+
+                    if (!findParent) {
+                        // not find parent, regard as root item
+                        res[formatedDate].push(newTodoItem)
+                    }
+
+                    // if (curBlankCount === 0) {
+                    //     // root todo item, directly push to root array
+                    //     res[formatedDate].push(newTodoItem)
+                    //     // delete original sub mapping, because current root is new
+                    //     todoItemMapping = { curBlankCount: [newTodoItem] }
+                    // } else {
+                    //     if (!todoItemMapping[0]) {
+                    //         // invalid children, ignore
+                    //         break
+                    //     }
+
+                    //     for (let i = curBlankCount - 1; i >= 0; --i) {
+                    //         if (i in todoItemMapping) {
+                    //             // find parent, last index of nearest small level
+                    //             let lastIndex = todoItemMapping[i].length - 1
+                    //             let parent = todoItemMapping[i][lastIndex]
+                    //             parent.children.push(newTodoItem)
+                    //             break
+                    //         }
+                    //     }
+                    // }
                     break
                 default:
                     break
