@@ -67,3 +67,11 @@ export function ShowError(msg) {
         type: constants.DialogTypes.error
     })
 }
+
+export function GetCurrentFullHeight() {
+    return remote.getCurrentWindow().getContentBounds().height
+}
+
+export function GetCurrentFullWidth() {
+    return remote.getCurrentWindow().getContentBounds().width
+}

@@ -5,6 +5,9 @@ export const RendererProcess = 'renderer'
 export const MAXPROGRESS = 4
 export const UserDataFile = path.join(process.env.APPDATA, 'MarkdownTodoList', 'UserData.json')
 
+export const FullHeight = 'FullHeight'
+export const FullWidth = 'FullWidth'
+
 export const FilterText = 'FilterText'
 export const TabsData = 'TabsData'
 export const CurTab = 'CurTab'

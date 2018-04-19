@@ -14,7 +14,7 @@
 
                 <el-input clearable prefix-icon="el-icon-search" placeholder="Todo Filter..." :size="ItemSize" v-model="FilterText" v-if="showFilterBar(item)">
                 </el-input>
-                <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" style="width: 100%">
+                <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" v-bind:style="TreeStyle">
                     <span slot-scope="{ node, data }">
                         <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" :size="ItemSize">
                             <el-container slot="append">
@@ -117,6 +117,20 @@ let TodoList = {
         };
     },
     computed: {
+        FullHeight() {
+            return vux.GetVuxData(constants.FullHeight);
+        },
+        FullWidth() {
+            return vux.GetVuxData(constants.FullWidth);
+        },
+        TreeStyle() {
+            // other components height is 200
+            return {
+                width: '100%',
+                height: `${this.FullHeight - 200}px`,
+                overflow: 'auto'
+            }
+        },
         ShowNoTabHelp() {
             return this.CurTab < 0 || this.CurTab >= this.TabsData.length
         },
@@ -426,6 +440,11 @@ ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
 
 ipcRenderer.on(constants.ToggleSwitchChannel, (evt, menuItem) => {
     SetOnlyShowContentDate(menuItem.checked)
+})
+
+remote.getCurrentWindow().on('resize', _ => {
+    vux.SetVuxData(util.GetCurrentFullHeight(), constants.FullHeight)
+    vux.SetVuxData(util.GetCurrentFullWidth(), constants.FullWidth)
 })
 </script>
 
