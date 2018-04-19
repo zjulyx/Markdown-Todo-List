@@ -90,6 +90,7 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
                     if (!line.trimLeft().startsWith('-') && !line.trimLeft().startsWith('*')) {
                         break
                     }
+                    // use a stack to handle parent-children relationship
                     let curNode = parseTodoItem(line.trimLeft())
                     let curBlankCount = line.length - line.trimLeft().length
                     let curLevel = curBlankCount / 4 + 1
@@ -116,8 +117,10 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
                     break
                 case '-':
                 case '*':
-                    res[curDate].push(parseTodoItem(line))
-                    stack = [res[curDate][0]]
+                    // root todo item, update stack
+                    let newRootTodoItem = parseTodoItem(line)
+                    res[curDate].push(newRootTodoItem)
+                    stack = [newRootTodoItem]
                     break
                 default:
                     break
@@ -128,12 +131,12 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
             hasError = true
             let err = `Error in ${markdownFile}!!!\r\n${ex}\r\n`
             if (util.IsMainProcess()) {
-                // main process
+                // main process, cancel parse
                 canceled = true
                 markdown.close()
                 util.ShowError(`${err}Cancel open it!`)
             } else {
-                // renderer process
+                // renderer process, let user to confirm whether reset
                 util.ShowDialog(`${err}Will reset its data. Are you sure?`, {
                     type: constants.DialogTypes.question,
                     resolve: () => {
