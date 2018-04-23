@@ -109,7 +109,8 @@ let TodoList = {
                             const date = new Date();
                             let today = util.FormatDateTime(date)
                             if (today !== this.CurDate) {
-                                Vue.set(this.CurTabContent, today, this.CurTabContent[this.CurDate])
+                                let copiedContent = JSON.parse(JSON.stringify(this.CurTabContent[this.CurDate]))
+                                Vue.set(this.CurTabContent, today, copiedContent)
                                 SaveMarkdownFile()
                             }
                             picker.$emit('pick', date);
