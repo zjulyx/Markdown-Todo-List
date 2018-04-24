@@ -100,3 +100,16 @@ export function SaveUserDataFile(userDataFile, obj) {
         }
     })
 }
+
+export function AddFileWatcher(file, index, fileWatchers, callback) {
+    fileWatchers.push(fs.watch(file, callback))
+}
+
+export function RemoveFileWatcher(index, fileWatchers) {
+    console.log(fileWatchers)
+    console.log(index)
+    let removedWatcher = fileWatchers[index]
+    console.log(removedWatcher)
+    // removedWatcher.close()
+    fileWatchers.splice(index, 1)
+}

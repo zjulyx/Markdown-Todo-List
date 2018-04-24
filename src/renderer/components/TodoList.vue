@@ -40,6 +40,7 @@
 
 <script>
 import Vue from 'vue'
+import fs from 'fs'
 
 import * as constants from "../../model/constants";
 import * as fileOperation from "../../utils/fileOperation";
@@ -61,6 +62,7 @@ let TodoList = {
             FilterDate: true,
             ItemSize: 'mini',
             NewTodoIdMap: {},
+            FileWatchers: [],
             MoveDirection: {
                 'Up': 'Up',
                 'Down': 'Down'
@@ -175,11 +177,24 @@ let TodoList = {
     watch: {
         CurDate(newData) {
             this.updateCheckStatusAtFirst(newData)
+        },
+        TabsData: {
+            handler: function () {
+                this.updateCheckStatusAtFirst(this.CurDate)
+            },
+            deep: true
         }
     },
     mounted() {
         this.updateCheckStatusAtFirst(this.CurDate)
         SaveUserDataFile()
+        this.$nextTick(function () {
+            console.log(this.Files)
+            this.Files.forEach((file, index) => {
+                AddWatcher(file, index)
+                console.log(this.FileWatchers)
+            })
+        })
     },
     methods: {
         increaseNewTodoId() {
@@ -216,11 +231,17 @@ let TodoList = {
                 ipcRenderer.send(constants.FileOpenChannel)
             }
             if (action === 'remove') {
-                this.TabsData.splice(parseInt(targetName), 1)
-                this.Files.splice(parseInt(targetName), 1)
+                console.log(this.TabsData)
+                console.log(this.CurTab)
+                let removedIndex = parseInt(targetName)
+                console.log(removedIndex)
+                this.TabsData.splice(removedIndex, 1)
+                this.Files.splice(removedIndex, 1)
+                fileOperation.RemoveFileWatcher(removedIndex, this.FileWatchers)
                 if (this.CurTab >= this.TabsData.length - 1) {
                     SetCurTab((this.TabsData.length - 1).toString())
                 }
+                console.log(this.CurTab)
                 SaveUserDataFile()
             }
         },
@@ -414,25 +435,65 @@ function FilterDuplicateFiles(currentFiles, newFiles, findDupCallback) {
     return res
 }
 
+function AddWatcher(file, index) {
+    console.log(file)
+    let currentFileWatchers = TodoList.data().FileWatchers
+    let currentTabsData = TodoList.data().TabsData
+    let currentFiles = TodoList.data().Files
+    let handleResult = function (res, cancelled) {
+        if (!cancelled) {
+            // because id not equal, so regard as different...
+            if (JSON.stringify(currentTabsData[index].Content) !== JSON.stringify(res)) {
+                console.log(currentTabsData[index].Content)
+                console.log(res)
+                // currentTabsData[index].Content = res
+            } else {
+                console.log('equal')
+            }
+        }
+    }
+
+    currentFileWatchers[index] = fs.watch(file, evt => {
+        if (evt === 'change') {
+            fileOperation.LoadMarkdownFile(file, handleResult)
+        } else if (evt === 'rename') {
+            currentFiles.splice(index, 1)
+            currentTabsData.splice(index, 1)
+            fileOperation.RemoveFileWatcher(index, currentFileWatchers)
+        }
+    })
+
+    // fileOperation.AddFileWatcher(file, index, currentFileWatchers, (evt, fileName) => {
+    //     if (evt === 'change') {
+    //         fileOperation.LoadMarkdownFile(file, handleResult(file, index))
+    //     } else if (evt === 'rename') {
+    //         currentFiles.splice(index, 1)
+    //         currentTabsData.splice(index, 1)
+    //         fileOperation.RemoveFileWatcher(index, currentFileWatchers)
+    //     }
+    // })
+}
+
 ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
-    let tempTabsData = TodoList.data().TabsData
-    let tempFiles = TodoList.data().Files
-    let originLength = tempTabsData.length
-    let originFileLength = tempFiles.length
+    let currentTabsData = TodoList.data().TabsData
+    let currentFiles = TodoList.data().Files
+    let originLength = currentTabsData.length
+    let originFileLength = currentFiles.length
     let count = 0
-    Files = FilterDuplicateFiles(tempFiles, Files, (newCurTab) => {
+    Files = FilterDuplicateFiles(currentFiles, Files, (newCurTab) => {
         SetCurTab(newCurTab)
     })
     let handleResult = function (file, index) {
         return function (res, cancelled) {
             if (!cancelled) {
-                tempTabsData[index + originLength] = util.GenerateNewTabData(file, res)
-                tempFiles[index + originFileLength] = file
+                currentTabsData[index + originLength] = util.GenerateNewTabData(file, res)
+                currentFiles[index + originFileLength] = file
+                AddWatcher(file, index + originLength)
             }
             if (++count === Files.length) {
-                tempTabsData = util.RemoveNullElementFromArray(tempTabsData)
-                tempFiles = util.RemoveNullElementFromArray(tempFiles)
-                SetCurTab((tempTabsData.length - 1).toString())
+                currentTabsData = util.RemoveNullElementFromArray(currentTabsData)
+                currentFiles = util.RemoveNullElementFromArray(currentFiles)
+                SetCurTab((currentTabsData.length - 1).toString())
             }
         }
     }
