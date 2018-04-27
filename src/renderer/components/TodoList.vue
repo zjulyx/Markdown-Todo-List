@@ -179,7 +179,8 @@ let TodoList = {
             this.updateCheckStatusAtFirst(newData)
         },
         TabsData: {
-            handler: function () {
+            handler: function (newData) {
+                console.log(newData)
                 this.updateCheckStatusAtFirst(this.CurDate)
             },
             deep: true
@@ -302,9 +303,12 @@ let TodoList = {
         showProgress(val) {
             return util.ConvertProgressToDisplay(val)
         },
+        generateInitData(label) {
+            return { id: markdownParser.IncreaseCurId(this.CurTabContent[this.CurDate]), label: label, progress: 0, finished: false, children: [] }
+        },
         addTodo({ NewTodo, node = this.$refs.tree[this.CurTab].root }) {
             NewTodo = NewTodo || `New Todo ${this.increaseNewTodoId()}`
-            const newChild = GenerateInitData(NewTodo)
+            const newChild = this.generateInitData(NewTodo)
             if (!(this.CurDate in this.CurTabContent)) {
                 Vue.set(this.CurTabContent, this.CurDate, [])
             }
@@ -352,10 +356,6 @@ let TodoList = {
 };
 
 export default TodoList;
-
-function GenerateInitData(label) {
-    return { id: markdownParser.IncreaseCurId(), label: label, progress: 0, finished: false, children: [] }
-}
 
 function CalNodeProgress(node) {
     let childCount = node.childNodes.length
@@ -446,7 +446,7 @@ function AddWatcher(file, index) {
             if (JSON.stringify(currentTabsData[index].Content) !== JSON.stringify(res)) {
                 console.log(currentTabsData[index].Content)
                 console.log(res)
-                // currentTabsData[index].Content = res
+                currentTabsData[index].Content = res
             } else {
                 console.log('equal')
             }

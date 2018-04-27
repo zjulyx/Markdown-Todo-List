@@ -6,16 +6,8 @@ import * as fileOperation from './fileOperation'
 
 export let CurId = 0
 
-export function IncreaseCurId() {
-    if (util.IsMainProcess()) {
-        // main process cannot access vux
-        return ++CurId
-    } else {
-        const vux = require('../renderer/store/vuxOperation')
-        let curId = vux.GetVuxData(constants.CurId)
-        vux.SetVuxData(++curId, constants.CurId)
-        return curId
-    }
+export function IncreaseCurId(currentDateItem) {
+    return ++currentDateItem.CurId
 }
 
 function convertEachDayArrToMarkDown(arr, preBlank = '') {
@@ -45,7 +37,7 @@ export function convertObjToMarkDown(obj, filename) {
     return res
 }
 
-function parseTodoItem(line) {
+function parseTodoItem(line, currentDateItem) {
     let arr = /[-|*]\s*\[(.*)\]\s*(.*)\((.*)%\)/.exec(line)
     if (!arr) {
         // no progress value
@@ -64,7 +56,7 @@ function parseTodoItem(line) {
         finished = false
     }
     return {
-        id: IncreaseCurId(),
+        id: IncreaseCurId(currentDateItem),
         finished: finished,
         label: label,
         progress: progress,
@@ -105,24 +97,14 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
                         if (formatedDate && !(formatedDate in res)) {
                             // only store valid date
                             res[formatedDate] = []
+                            res[formatedDate].CurId = 0
                         }
                     }
                     break
                 case '-':
                 case '*':
                     // todo item with level
-                    let newTodoItem = parseTodoItem(line)
-                    // if (curBlankCount === 0) {
-                    //     // root todo item, directly push to root array
-                    //     res[formatedDate].push(newTodoItem)
-                    // }
-
-                    // if (!(curBlankCount in todoItemMapping)) {
-                    //     // init mapping for new level
-                    //     todoItemMapping[curBlankCount] = []
-                    // }
-                    // todoItemMapping[curBlankCount].push(newTodoItem)
-
+                    let newTodoItem = parseTodoItem(line, res[formatedDate])
                     // remove all items that level is equal or higher than this
                     todoItemMapping.splice(curBlankCount, todoItemMapping.length)
                     todoItemMapping[curBlankCount] = newTodoItem
@@ -131,7 +113,6 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
                     for (let i = curBlankCount - 1; i >= 0; --i) {
                         if (todoItemMapping[i]) {
                             // find parent, nearest small level
-                            // let lastIndex = todoItemMapping[i].length - 1
                             let parent = todoItemMapping[i]
                             parent.children.push(newTodoItem)
                             findParent = true
@@ -143,28 +124,6 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
                         // not find parent, regard as root item
                         res[formatedDate].push(newTodoItem)
                     }
-
-                    // if (curBlankCount === 0) {
-                    //     // root todo item, directly push to root array
-                    //     res[formatedDate].push(newTodoItem)
-                    //     // delete original sub mapping, because current root is new
-                    //     todoItemMapping = { curBlankCount: [newTodoItem] }
-                    // } else {
-                    //     if (!todoItemMapping[0]) {
-                    //         // invalid children, ignore
-                    //         break
-                    //     }
-
-                    //     for (let i = curBlankCount - 1; i >= 0; --i) {
-                    //         if (i in todoItemMapping) {
-                    //             // find parent, last index of nearest small level
-                    //             let lastIndex = todoItemMapping[i].length - 1
-                    //             let parent = todoItemMapping[i][lastIndex]
-                    //             parent.children.push(newTodoItem)
-                    //             break
-                    //         }
-                    //     }
-                    // }
                     break
                 default:
                     break
