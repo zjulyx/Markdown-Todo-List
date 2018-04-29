@@ -155,6 +155,7 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
     })
 
     markdown.on('close', () => {
+        console.log(`hasError: ${hasError}`)
         res = hasError ? { [constants.Title]: fileOperation.GetFileNameWithoutExtension(markdownFile) } : res
         finishCallback(res, canceled)
     })

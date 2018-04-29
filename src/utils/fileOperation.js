@@ -25,6 +25,7 @@ function mkdirs(dirname, callback) {
 }
 
 function handleFileNotExist(file, callback, initData, jsonParse = true) {
+    console.log('handleFileNotExist')
     let initStr = jsonParse ? JSON.stringify(initData) : markdownParser.convertObjToMarkDown(initData, file)
     mkdirs(path.dirname(file), () => {
         fs.writeFile(file, initStr, err => {

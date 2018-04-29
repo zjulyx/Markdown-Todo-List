@@ -178,8 +178,9 @@ let TodoList = {
         CurDate(newData) {
             this.updateCheckStatusAtFirst(newData)
         },
-        TabsData: {
+        CurTabContent: {
             handler: function (newData) {
+                console.log('Change CurTabContent to')
                 console.log(newData)
                 this.updateCheckStatusAtFirst(this.CurDate)
             },
@@ -236,9 +237,10 @@ let TodoList = {
                 console.log(this.CurTab)
                 let removedIndex = parseInt(targetName)
                 console.log(removedIndex)
+                fs.unwatchFile(this.Files[removedIndex])
+                // fileOperation.RemoveFileWatcher(removedIndex, this.FileWatchers)
                 this.TabsData.splice(removedIndex, 1)
                 this.Files.splice(removedIndex, 1)
-                fileOperation.RemoveFileWatcher(removedIndex, this.FileWatchers)
                 if (this.CurTab >= this.TabsData.length - 1) {
                     SetCurTab((this.TabsData.length - 1).toString())
                 }
@@ -308,10 +310,10 @@ let TodoList = {
         },
         addTodo({ NewTodo, node = this.$refs.tree[this.CurTab].root }) {
             NewTodo = NewTodo || `New Todo ${this.increaseNewTodoId()}`
-            const newChild = this.generateInitData(NewTodo)
             if (!(this.CurDate in this.CurTabContent)) {
                 Vue.set(this.CurTabContent, this.CurDate, [])
             }
+            const newChild = this.generateInitData(NewTodo)
             this.$refs.tree[this.CurTab].append(newChild, node)
             this.updateProgress(CalNodeProgress(node), node)
         },
@@ -437,29 +439,27 @@ function FilterDuplicateFiles(currentFiles, newFiles, findDupCallback) {
 
 function AddWatcher(file, index) {
     console.log(file)
-    let currentFileWatchers = TodoList.data().FileWatchers
+    // let currentFileWatchers = TodoList.data().FileWatchers
     let currentTabsData = TodoList.data().TabsData
-    let currentFiles = TodoList.data().Files
+    // let currentFiles = TodoList.data().Files
     let handleResult = function (res, cancelled) {
         if (!cancelled) {
             // because id not equal, so regard as different...
             if (JSON.stringify(currentTabsData[index].Content) !== JSON.stringify(res)) {
-                console.log(currentTabsData[index].Content)
-                console.log(res)
+                // console.log(currentTabsData[index].Content)
+                // console.log(res)
+                console.log(`'not equal'${new Date()}`)
                 currentTabsData[index].Content = res
             } else {
-                console.log('equal')
+                console.log(`'equal'${new Date()}`)
             }
         }
     }
 
-    currentFileWatchers[index] = fs.watch(file, evt => {
-        if (evt === 'change') {
+    fs.watchFile(file, (curr, prev) => {
+        if (curr.mtime !== prev.mtime && curr.size !== prev.size) {
+            // changed
             fileOperation.LoadMarkdownFile(file, handleResult)
-        } else if (evt === 'rename') {
-            currentFiles.splice(index, 1)
-            currentTabsData.splice(index, 1)
-            fileOperation.RemoveFileWatcher(index, currentFileWatchers)
         }
     })
 
