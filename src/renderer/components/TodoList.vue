@@ -14,21 +14,19 @@
 
                 <el-input clearable prefix-icon="el-icon-search" placeholder="Todo Filter..." :size="ItemSize" v-model="FilterText" v-if="showFilterBar(item)">
                 </el-input>
-                <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" :style="TreeStyle">
-                    <span slot-scope="{ node, data }">
-                        <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" :size="ItemSize">
+                <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" :style="TreeStyle" draggable>
+                    <span slot-scope="{ node, data }" style="width:100%; display: -webkit-flex; display:flex; justify-content:space-between; overflow:'auto'">
+                        <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" :size="ItemSize" :style="`width:${InputWidth(node)}px`">
                             <el-container slot="append">
                                 <el-tooltip :content="showProgress(data.progress)" placement="right" effect="light">
                                     <el-rate :size="ItemSize" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{updateProgress(val,node)}" :disabled="!node.isLeaf" disabled-void-color="#C6D1DE" disabled-void-icon-class="el-icon-star-off"></el-rate>
                                 </el-tooltip>
                             </el-container>
                         </el-input>
-                        <span>
+                        <el-button-group :style="`width:${ButtonWidth}px`">
                             <el-button type="primary" icon="el-icon-circle-plus-outline" @click="() => addTodo({node:node})" :size="ItemSize"></el-button>
                             <el-button type="danger" icon="el-icon-delete" @click="() => removeTodo(node, data)" :size="ItemSize"></el-button>
-                            <el-button type="success" icon="el-icon-caret-top" @click="() => moveTodo(node, MoveDirection.Up)" :disabled="isFirstChild(node)" :size="ItemSize"></el-button>
-                            <el-button type="success" icon="el-icon-caret-bottom" @click="() => moveTodo(node, MoveDirection.Down)" :disabled="isLastChild(node)" :size="ItemSize"></el-button>
-                        </span>
+                        </el-button-group>
                     </span>
                 </el-tree>
                 <el-input placeholder="Add New Todo..." v-model="item.NewTodo" @keyup.enter.native="addTodo({NewTodo : item.NewTodo})" clearable :size="ItemSize">
@@ -61,10 +59,6 @@ let TodoList = {
             FilterDate: true,
             ItemSize: 'mini',
             NewTodoIdMap: {},
-            MoveDirection: {
-                'Up': 'Up',
-                'Down': 'Down'
-            },
             pickerOptions: {
                 disabledDate: time => {
                     let now = Date.now()
@@ -126,6 +120,9 @@ let TodoList = {
         FullWidth() {
             return vux.GetVuxData(constants.FullWidth);
         },
+        ButtonWidth() {
+            return this.FullWidth * 0.1;
+        },
         TreeStyle() {
             // other components height is 200
             return {
@@ -182,6 +179,11 @@ let TodoList = {
         SaveUserDataFile()
     },
     methods: {
+        InputWidth(node) {
+            // checkbox width is 18px, expand symbol witdth is 24px
+            let inputWidth = this.FullWidth - this.ButtonWidth - node.level * 18 - 24 - 50
+            return inputWidth
+        },
         increaseNewTodoId() {
             let CurFileName = this.Files[this.CurTab]
             if (!(CurFileName in this.NewTodoIdMap)) {
@@ -196,12 +198,6 @@ let TodoList = {
         },
         showFilterBar(item) {
             return !item.Content[item.CurDate] || item.Content[item.CurDate].length !== 0
-        },
-        isFirstChild(node) {
-            return node === node.parent.childNodes[0]
-        },
-        isLastChild(node) {
-            return node === node.parent.childNodes[node.parent.childNodes.length - 1]
         },
         handleTitleEdit() {
             this.CurTabData.TitleNotEditing = false
@@ -289,29 +285,6 @@ let TodoList = {
             }
             this.$refs.tree[this.CurTab].append(newChild, node)
             this.updateProgress(CalNodeProgress(node), node)
-        },
-        moveTodo(node, moveDirection) {
-            let parent = node.parent
-            let curIndex = parent.childNodes.indexOf(node)
-            let originData = node.data
-            let action
-            if (moveDirection === this.MoveDirection.Up) {
-                if (curIndex <= 0) {
-                    return
-                }
-                curIndex--
-                action = this.$refs.tree[this.CurTab].insertBefore
-            } else {
-                if (curIndex === -1 || curIndex === parent.childNodes.length - 1) {
-                    return
-                }
-                curIndex++
-                action = this.$refs.tree[this.CurTab].insertAfter
-            }
-            let siblingNode = parent.childNodes[curIndex]
-            this.$refs.tree[this.CurTab].remove(node)
-            action(originData, siblingNode)
-            SaveMarkdownFile()
         },
         removeTodo(node, data) {
             let parent = node.parent;
