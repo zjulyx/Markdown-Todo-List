@@ -7,20 +7,37 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch APP",
-            "program": "${workspaceFolder}/.electron-vue/dev-runner.js"
+            "name": "Electron: Start Without Debug",
+            "program": "${workspaceFolder}/.electron-vue/dev-runner.js",
         },
-        // {
-        //     "name": "Debug Renderer Process",
-        //     "type": "chrome",
-        //     "request": "launch",
-        //     "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
-        //     "runtimeArgs": [
-        //         "${workspaceFolder}/dist/electron/main.js",
-        //         "--remote-debugging-port=9222"
-        //     ],
-        //     "userDataDir": "${workspaceRoot}/.vscode/chrome",
-        //     "webRoot": "${workspaceRoot}"
-        // }
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Electron: Init",
+            "program": "${workspaceFolder}/.electron-vue/debug-runner.js",
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Electron: Renderer",
+            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+            "runtimeArgs": [
+                "${workspaceFolder}/dist/electron/main.js",
+                "--remote-debugging-port=9222"
+            ],
+            "webRoot": "${workspaceFolder}/src/",
+            "sourceMapPathOverrides": {
+                "webpack:///src/*": "${webRoot}/*"
+            }
+        },
+    ],
+    "compounds": [
+        {
+            "name": "Electron: All",
+            "configurations": [
+                "Electron: Init",
+                "Electron: Renderer",
+            ]
+        },
     ]
 }

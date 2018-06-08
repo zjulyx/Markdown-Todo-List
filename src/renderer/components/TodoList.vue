@@ -3,10 +3,7 @@
         <el-tabs v-model="CurTab" type="card" editable @edit="handleTabsEdit" @click.middle.native="handleTabsEdit(CurTab, 'remove')">
             <el-alert title="Click + to open or create todo list file" type="info" :closable="false" show-icon center v-if="ShowNoTabHelp"> </el-alert>
             <el-tab-pane :key="index" v-for="(item,index) in TabsData" :label="item.FileName" :name="index.toString()" v-else>
-                <el-tooltip content="Double click to edit title" placement="right" effect="light" v-if="item.TitleNotEditing">
-                    <el-alert :title="item.Content.Title" type="warning" :closable="false" @dblclick.native.prevent="handleTitleEdit" center> </el-alert>
-                </el-tooltip>
-                <el-input ref="titleEdit" prefix-icon="el-icon-edit" :value="item.Content.Title" @blur="event=>titleEdited(event.target.value)" @change="val=>titleEdited(val)" @dblclick.native.prevent="handleTitleEdit" :size="ItemSize" v-else>
+                <el-input v-model="item.Content.Title" class="el-title" :size="ItemSize">
                 </el-input>
 
                 <el-date-picker v-model="item.CurDate" align="center" type="date" placeholder="Choose Date" :picker-options="pickerOptions" value-format="yyyy-MM-dd" :size="ItemSize" style="width:100%">
@@ -14,17 +11,16 @@
 
                 <el-input clearable prefix-icon="el-icon-search" placeholder="Todo Filter..." :size="ItemSize" v-model="FilterText" v-if="showFilterBar(item)">
                 </el-input>
-                <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" :style="TreeStyle" draggable>
+                <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" :style="TreeStyle" draggable @node-drag-start="handleDragStart" @node-drop="handleDrop">
                     <span slot-scope="{ node, data }" style="width:100%; display: -webkit-flex; display:flex; justify-content:space-between; overflow:'auto'">
-                        <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" :size="ItemSize" :style="`width:${InputWidth(node)}px`">
-                            <el-container slot="append">
-                                <el-tooltip :content="showProgress(data.progress)" placement="right" effect="light">
-                                    <el-rate :size="ItemSize" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{updateProgress(val,node)}" :disabled="!node.isLeaf" disabled-void-color="#C6D1DE" disabled-void-icon-class="el-icon-star-off"></el-rate>
-                                </el-tooltip>
-                            </el-container>
+                        <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" :size="ItemSize" :style="`width:${InputWidth(node)}px`" class="el-todo-item">
+                            <!-- <el-input prefix-icon="el-icon-edit" :value="node.label" @blur="event=>doneEdit(event.target.value, node, data)" @change="val=>doneEdit(val, node, data)" :size="ItemSize" :style="`width:${InputWidth(node)}px`" class="el-title"> -->
                         </el-input>
+                        <el-tooltip :content="showProgress(data.progress)" placement="top" effect="light">
+                            <el-rate :size="ItemSize" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{updateProgress(val,node)}" :disabled="!node.isLeaf" disabled-void-color="#C6D1DE" disabled-void-icon-class="el-icon-star-off" :style="`margin-top:5px;width:${RateWidth}px`"></el-rate>
+                        </el-tooltip>
                         <el-button-group :style="`width:${ButtonWidth}px`">
-                            <el-button type="primary" icon="el-icon-circle-plus-outline" @click="() => addTodo({node:node})" :size="ItemSize"></el-button>
+                            <el-button type="success" icon="el-icon-circle-plus-outline" @click="() => addTodo({node:node})" :size="ItemSize"></el-button>
                             <el-button type="danger" icon="el-icon-delete" @click="() => removeTodo(node, data)" :size="ItemSize"></el-button>
                         </el-button-group>
                     </span>
@@ -57,7 +53,8 @@ let TodoList = {
             Files: initSharedData.Files,
             MAXPROGRESS: constants.MAXPROGRESS,
             FilterDate: true,
-            ItemSize: 'mini',
+            LeavedNode: null,
+            ItemSize: 'small',
             NewTodoIdMap: {},
             pickerOptions: {
                 disabledDate: time => {
@@ -121,7 +118,10 @@ let TodoList = {
             return vux.GetVuxData(constants.FullWidth);
         },
         ButtonWidth() {
-            return this.FullWidth * 0.1;
+            return 100;
+        },
+        RateWidth() {
+            return 100;
         },
         TreeStyle() {
             // other components height is 200
@@ -181,8 +181,23 @@ let TodoList = {
     methods: {
         InputWidth(node) {
             // checkbox width is 18px, expand symbol witdth is 24px
-            let inputWidth = this.FullWidth - this.ButtonWidth - node.level * 18 - 24 - 50
+            let inputWidth = this.FullWidth - this.ButtonWidth - this.RateWidth - node.level * 18 - 24 - 55
             return inputWidth
+        },
+        handleDragStart(node, ev) {
+            this.LeavedNode = node.parent
+        },
+        handleDrop(draggingNode, dropNode, dropType, ev) {
+            let prevprogress = draggingNode.data.progress
+            this.$nextTick(function () {
+                // drop process may clear data's progress
+                this.updateProgress(prevprogress, draggingNode)
+                this.updateProgress(CalNodeProgress(dropNode), dropNode)
+                if (this.LeavedNode) {
+                    this.updateProgress(CalNodeProgress(this.LeavedNode), this.LeavedNode)
+                }
+                this.updateCheckStatusAtFirst(this.CurDate)
+            })
         },
         increaseNewTodoId() {
             let CurFileName = this.Files[this.CurTab]
@@ -253,14 +268,6 @@ let TodoList = {
             }
         },
         updateProgress(newProgress, node) {
-            let parent = node.parent
-            if (!parent) {
-                // root node, have no progress/finished prop
-                SaveMarkdownFile()
-                return
-            }
-
-            node.data = node.data
             node.data.progress = newProgress
             node.data.finished = (newProgress === constants.MAXPROGRESS)
             if (newProgress === constants.MAXPROGRESS) {
@@ -272,7 +279,12 @@ let TodoList = {
             } else {
                 node.indeterminate = true
             }
-            this.updateProgress(CalNodeProgress(parent), parent)
+            let parent = node.parent
+            if (parent) {
+                this.updateProgress(CalNodeProgress(parent), parent)
+            } else {
+                SaveMarkdownFile()
+            }
         },
         showProgress(val) {
             return util.ConvertProgressToDisplay(val)
@@ -425,7 +437,29 @@ remote.getCurrentWindow().on('resize', _ => {
 </script>
 
 <style>
-.el-margin-bottom {
-  margin-bottom: 10px;
+.el-title /deep/ input.el-input__inner {
+  border: 0;
+  text-align: center;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  display: inline-block;
+  font-weight: bold;
+  color: orange;
+  text-shadow: 0 0 1px currentColor, -1px -1px 1px #000, 0 -1px 1px #000,
+    1px -1px 1px #000, 1px 0 1px #000, 1px 1px 1px #000, 0 1px 1px #000,
+    -1px 1px 1px #000, -1px 0 1px #000;
+  -webkit-filter: url(#el-title);
+  filter: url(#el-title);
+}
+
+.el-todo-item /deep/ input.el-input__inner {
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  border-bottom: 1px ridge white;
+  border-radius: 0;
+  height: 80%;
+  margin-top: 3px;
+  outline: 0;
 }
 </style>

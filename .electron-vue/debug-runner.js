@@ -3,8 +3,12 @@
 const chalk = require('chalk')
 const electron = require('electron')
 const path = require('path')
-const { say } = require('cfonts')
-const { spawn } = require('child_process')
+const {
+    say
+} = require('cfonts')
+const {
+    spawn
+} = require('child_process')
 const webpack = require('webpack')
 const WebpackDevServer = require('webpack-dev-server')
 const webpackHotMiddleware = require('webpack-hot-middleware')
@@ -50,7 +54,9 @@ function startRenderer() {
 
         compiler.plugin('compilation', compilation => {
             compilation.plugin('html-webpack-plugin-after-emit', (data, cb) => {
-                hotMiddleware.publish({ action: 'reload' })
+                hotMiddleware.publish({
+                    action: 'reload'
+                })
                 cb()
             })
         })
@@ -60,8 +66,7 @@ function startRenderer() {
         })
 
         const server = new WebpackDevServer(
-            compiler,
-            {
+            compiler, {
                 contentBase: path.join(__dirname, '../'),
                 quiet: true,
                 before(app, ctx) {
@@ -85,7 +90,9 @@ function startMain() {
 
         compiler.plugin('watch-run', (compilation, done) => {
             logStats('Main', chalk.white.bold('compiling...'))
-            hotMiddleware.publish({ action: 'compiling' })
+            hotMiddleware.publish({
+                action: 'compiling'
+            })
             done()
         })
 
@@ -101,7 +108,6 @@ function startMain() {
                 manualRestart = true
                 process.kill(electronProcess.pid)
                 electronProcess = null
-                startElectron()
 
                 setTimeout(() => {
                     manualRestart = false
@@ -135,8 +141,7 @@ function init() {
     greeting()
 
     Promise.all([startRenderer(), startMain()])
-        .then(() => {
-        })
+        .then(() => {})
         .catch(err => {
             console.error(err)
         })
