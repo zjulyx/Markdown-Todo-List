@@ -1,4 +1,11 @@
-# markdowntodolist
+# Markdown Todo List
+
+[![Build Status](https://travis-ci.org/zjulyx/Markdown-Todo-List.svg?branch=master)](https://travis-ci.org/zjulyx/Markdown-Todo-List)
+[![License](https://img.shields.io/badge/license-MIT-green.svg?branch=master)](https://github.com/zjulyx/Markdown-Todo-List/blob/master/LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/zjulyx/Markdown-Todo-List.svg)](https://github.com/zjulyx/Markdown-Todo-List/commits)
+[![Release Date](https://img.shields.io/github/release-date/zjulyx/Markdown-Todo-List.svg)](https://github.com/zjulyx/Markdown-Todo-List/releases)
+
+---
 
 > Todo List, use markdown format for cross-platform usage & display
 

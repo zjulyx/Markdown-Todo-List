@@ -14,14 +14,13 @@
                 <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" :style="TreeStyle" draggable @node-drag-start="handleDragStart" @node-drop="handleDrop">
                     <span slot-scope="{ node, data }" style="width:100%; display: -webkit-flex; display:flex; justify-content:space-between; overflow:'auto'">
                         <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" :size="ItemSize" :style="`width:${InputWidth(node)}px`" class="el-todo-item">
-                            <!-- <el-input prefix-icon="el-icon-edit" :value="node.label" @blur="event=>doneEdit(event.target.value, node, data)" @change="val=>doneEdit(val, node, data)" :size="ItemSize" :style="`width:${InputWidth(node)}px`" class="el-title"> -->
                         </el-input>
                         <el-tooltip :content="showProgress(data.progress)" placement="top" effect="light">
                             <el-rate :size="ItemSize" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{updateProgress(val,node)}" :disabled="!node.isLeaf" disabled-void-color="#C6D1DE" disabled-void-icon-class="el-icon-star-off" :style="`margin-top:5px;width:${RateWidth}px`"></el-rate>
                         </el-tooltip>
                         <el-button-group :style="`width:${ButtonWidth}px`">
-                            <el-button type="success" icon="el-icon-circle-plus-outline" @click="() => addTodo({node:node})" :size="ItemSize"></el-button>
-                            <el-button type="danger" icon="el-icon-delete" @click="() => removeTodo(node, data)" :size="ItemSize"></el-button>
+                            <el-button type="success" icon="el-icon-circle-plus-outline" @click="() => addTodo({node:node})" size="mini" plain circle></el-button>
+                            <el-button type="danger" icon="el-icon-delete" @click="() => removeTodo(node, data)" size="mini" plain circle></el-button>
                         </el-button-group>
                     </span>
                 </el-tree>
@@ -118,10 +117,10 @@ let TodoList = {
             return vux.GetVuxData(constants.FullWidth);
         },
         ButtonWidth() {
-            return 100;
+            return 60;
         },
         RateWidth() {
-            return 100;
+            return 90;
         },
         TreeStyle() {
             // other components height is 200
