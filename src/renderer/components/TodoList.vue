@@ -13,7 +13,7 @@
                 </el-input>
                 <el-tree :data="item.Content[item.CurDate]" ref="tree" show-checkbox node-key="id" default-expand-all :expand-on-click-node="false" @check-change="handleCheckChange" :filter-node-method="filterNode" :style="TreeStyle" draggable @node-drag-start="handleDragStart" @node-drop="handleDrop">
                     <span slot-scope="{ node, data }" style="width:100%; display: -webkit-flex; display:flex; justify-content:space-between; overflow:'auto'">
-                        <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" :size="ItemSize" :style="`width:${InputWidth(node)}px`" class="el-todo-item">
+                        <el-input :value="node.label" @change="val=>doneEdit(val, node, data)" :size="ItemSize" :style="`width:${inputWidth(node)}px`" class="el-todo-item">
                         </el-input>
                         <el-tooltip :content="showProgress(data.progress)" placement="top" effect="light">
                             <el-rate :size="ItemSize" v-model="data.progress" :max="MAXPROGRESS" @change="val=>{updateProgress(val,node)}" :disabled="!node.isLeaf" disabled-void-color="#C6D1DE" disabled-void-icon-class="el-icon-star-off" :style="`margin-top:5px;width:${RateWidth}px`"></el-rate>
@@ -33,14 +33,17 @@
 
 <script>
 import Vue from 'vue'
+import axios from 'axios'
 
 import * as constants from "../../model/constants";
 import * as fileOperation from "../../utils/fileOperation";
 import * as markdownParser from "../../utils/markdownParser";
 import * as util from "../../utils/util";
 import * as vux from "../store/vuxOperation";
+import * as packageConfig from "../../../package.json";
 
 import { ipcRenderer, remote } from 'electron'
+import { exec } from 'child_process'
 
 let initSharedData = JSON.parse(JSON.stringify(remote.getGlobal('sharedData')))
 
@@ -175,10 +178,40 @@ let TodoList = {
     },
     mounted() {
         this.updateCheckStatusAtFirst(this.CurDate)
+        this.checkVersion()
         SaveUserDataFile()
     },
     methods: {
-        InputWidth(node) {
+        checkVersion() {
+            let curVersion = packageConfig.version
+            let versionAPIUri = `https://api.github.com/repos/zjulyx/Markdown-Todo-List/releases/latest`
+            let lastestVersionUri = "https://github.com/zjulyx/Markdown-Todo-List/releases/latest"
+            axios.get(versionAPIUri)
+                .then((response) => {
+                    let serverVersion = response.data.tag_name.substr(1); // remove prefix 'v'
+                    if (serverVersion > curVersion) {
+                        this.$notify({
+                            title: 'Update Available',
+                            dangerouslyUseHTMLString: true,
+                            message: `Find new version ${serverVersion}, click <a href="#">here</a> to download`,
+                            duration: 0,
+                            onClick() {
+                                // may need use different cmd in different os
+                                exec(`start ${lastestVersionUri}`)
+                            }
+                        });
+                    }
+                })
+                .catch((error) => {
+                    this.$message({
+                        showClose: true,
+                        duration: 0,
+                        message: `Find error ${error} when checking version`,
+                        type: 'warning'
+                    });
+                });
+        },
+        inputWidth(node) {
             // checkbox width is 18px, expand symbol witdth is 24px
             let inputWidth = this.FullWidth - this.ButtonWidth - this.RateWidth - node.level * 18 - 24 - 55
             return inputWidth
@@ -436,7 +469,7 @@ remote.getCurrentWindow().on('resize', _ => {
 </script>
 
 <style>
-.el-title /deep/ input.el-input__inner {
+.el-title input.el-input__inner {
   border: 0;
   text-align: center;
   font-size: 18px;
@@ -451,7 +484,7 @@ remote.getCurrentWindow().on('resize', _ => {
   filter: url(#el-title);
 }
 
-.el-todo-item /deep/ input.el-input__inner {
+.el-todo-item input.el-input__inner {
   border-top: 0;
   border-right: 0;
   border-left: 0;
