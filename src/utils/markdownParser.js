@@ -46,10 +46,10 @@ export function convertObjToMarkDown(obj, filename) {
 }
 
 function parseTodoItem(line) {
-    let arr = /[-|*]\s*\[(.*)\]\s*(.*)\((.*)%\)/.exec(line)
-    if (!arr) {
-        // no progress value
-        arr = /[-|*]\s*\[(.*)\]\s*(.*)/.exec(line)
+    let arr = /[-|*]\s*\[(.*)\]\s*(.*)\((.*)%\)/.exec(line) || /[-|*]\s*\[(.*)\]\s*(.*)/.exec(line)
+    if (!arr || arr.length < 3) {
+        // invalid format
+        return null
     }
     let finished = arr[1].trim() === 'x'
     let label = arr[2].trim()
@@ -83,86 +83,93 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
     let hasError = false
     let canceled = false
     markdown.on('line', line => {
-        try {
-            let curBlankCount = line.length - line.trimLeft().length
-            line = line.trimLeft()
-            if (line.length <= 1) {
-                // invalid line
-                return
-            }
+        if (!hasError) {
+            try {
+                let curBlankCount = line.length - line.trimLeft().length
+                line = line.trimLeft()
+                if (line.length <= 1) {
+                    // invalid line
+                    return
+                }
 
-            switch (line[0]) {
-                case '#':
-                    if (line[1] !== '#') {
-                        // only 1 #, means title
-                        let arr = /#(.*)/.exec(line)
-                        res[constants.Title] = arr[1].trim()
-                    } else {
-                        // at least 2 #, means date
-                        let arr = /##(.*)/.exec(line)
-                        let strDate = arr[1].trim()
-                        formatedDate = util.FormatDateTime(strDate)
-                        if (formatedDate && !(formatedDate in res)) {
-                            // only store valid date
-                            res[formatedDate] = []
+                switch (line[0]) {
+                    case '#':
+                        if (line[1] !== '#') {
+                            // only 1 #, means title
+                            let arr = /#(.*)/.exec(line)
+                            res[constants.Title] = arr[1].trim()
+                        } else {
+                            // at least 2 #, means date
+                            let arr = /##(.*)/.exec(line)
+                            let strDate = arr[1].trim()
+                            formatedDate = util.FormatDateTime(strDate)
+                            if (formatedDate && !(formatedDate in res)) {
+                                // only store valid date
+                                res[formatedDate] = []
+                            }
                         }
-                    }
-                    break
-                case '-':
-                case '*':
-                    // todo item with level
-                    let newTodoItem = parseTodoItem(line)
-                    // remove all items that level is equal or higher than this
-                    todoItemMapping.splice(curBlankCount, todoItemMapping.length)
-                    todoItemMapping[curBlankCount] = newTodoItem
+                        break
+                    case '-':
+                    case '*':
+                        // todo item with level
+                        let newTodoItem = parseTodoItem(line)
+                        if (newTodoItem) {
+                            // remove all items that level is equal or higher than this
+                            todoItemMapping.splice(curBlankCount, todoItemMapping.length)
+                            todoItemMapping[curBlankCount] = newTodoItem
 
-                    let findParent = false
-                    for (let i = curBlankCount - 1; i >= 0; --i) {
-                        if (todoItemMapping[i]) {
-                            // find parent, nearest small level
-                            let parent = todoItemMapping[i]
-                            parent.children.push(newTodoItem)
-                            findParent = true
-                            break
+                            let findParent = false
+                            for (let i = curBlankCount - 1; i >= 0; --i) {
+                                if (todoItemMapping[i]) {
+                                    // find parent, nearest small level
+                                    let parent = todoItemMapping[i]
+                                    parent.children.push(newTodoItem)
+                                    findParent = true
+                                    break
+                                }
+                            }
+
+                            if (!findParent) {
+                                // not find parent, regard as root item
+                                res[formatedDate].push(newTodoItem)
+                            }
                         }
-                    }
-
-                    if (!findParent) {
-                        // not find parent, regard as root item
-                        res[formatedDate].push(newTodoItem)
-                    }
-                    break
-                default:
-                    break
-            }
-        } catch (ex) {
-            // find error in parse
-            markdown.pause()
-            hasError = true
-            let err = `Error in ${markdownFile}!!!\r\n${ex}\r\n`
-            if (util.IsMainProcess()) {
-                // main process, cancel parse
-                canceled = true
-                markdown.close()
-                util.ShowError(`${err}Cancel open it!`)
-            } else {
-                // renderer process, let user to confirm whether reset
-                util.ShowDialog(`${err}Will reset its data. Are you sure?`, {
-                    type: constants.DialogTypes.question,
-                    resolve: () => {
-                        markdown.close()
-                    },
-                    reject: () => {
-                        canceled = true
-                        markdown.close()
-                    }
-                })
+                        break
+                    default:
+                        break
+                }
+            } catch (ex) {
+                // find error in parse
+                hasError = true
+                let err = `Error in ${markdownFile}!!!\r\n${ex}\r\n`
+                if (util.IsMainProcess()) {
+                    // main process, cancel parse
+                    canceled = true
+                    markdown.close()
+                    util.ShowError(`${err}Cancel open it!`)
+                } else {
+                    // renderer process, let user to confirm whether reset
+                    util.ShowDialog(`${err}Will reset its data. Are you sure?`, {
+                        type: constants.DialogTypes.question,
+                        resolve: () => {
+                            markdown.close()
+                        },
+                        reject: () => {
+                            canceled = true
+                            markdown.close()
+                        }
+                    })
+                }
             }
         }
     })
 
     markdown.on('close', () => {
-        res = hasError ? { [constants.Title]: fileOperation.GetFileNameWithoutExtension(markdownFile) } : res
+        if (hasError) {
+            res = {
+                [constants.Title]: fileOperation.GetFileNameWithoutExtension(markdownFile)
+            }
+        }
         finishCallback(res, canceled)
     })
 }
