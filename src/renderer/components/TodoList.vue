@@ -57,7 +57,6 @@ let TodoList = {
             FilterDate: true,
             LeavedNode: null,
             ItemSize: 'small',
-            NewTodoIdMap: {},
             pickerOptions: {
                 disabledDate: time => {
                     let now = Date.now()
@@ -231,18 +230,6 @@ let TodoList = {
                 this.updateCheckStatusAtFirst(this.CurDate)
             })
         },
-        increaseNewTodoId() {
-            let CurFileName = this.Files[this.CurTab]
-            if (!(CurFileName in this.NewTodoIdMap)) {
-                this.NewTodoIdMap[CurFileName] = {}
-            }
-
-            if (!(this.CurDate in this.NewTodoIdMap[CurFileName])) {
-                this.NewTodoIdMap[CurFileName][this.CurDate] = 0
-            }
-
-            return this.NewTodoIdMap[CurFileName][this.CurDate]++
-        },
         showFilterBar(item) {
             return !item.Content[item.CurDate] || item.Content[item.CurDate].length !== 0
         },
@@ -322,7 +309,7 @@ let TodoList = {
             return util.ConvertProgressToDisplay(val)
         },
         addTodo({ NewTodo, node = this.$refs.tree[this.CurTab].root }) {
-            NewTodo = NewTodo || `New Todo ${this.increaseNewTodoId()}`
+            NewTodo = NewTodo || `New Todo...`
             const newChild = GenerateInitData(NewTodo)
             if (!(this.CurDate in this.CurTabContent)) {
                 Vue.set(this.CurTabContent, this.CurDate, [])
