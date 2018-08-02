@@ -173,3 +173,19 @@ export function convertMarkDownToObj(markdownFile, finishCallback) {
         finishCallback(res, canceled)
     })
 }
+
+export function splitTodoItems(todoItemsList) {
+    let completedItemsList = []
+    let incompleteItemsList = []
+    for (let todoItem of todoItemsList) {
+        if (todoItem.finished) {
+            completedItemsList.push(todoItem)
+        } else {
+            incompleteItemsList.push(todoItem)
+        }
+    }
+    return {
+        complete: completedItemsList,
+        incomplete: incompleteItemsList
+    }
+}

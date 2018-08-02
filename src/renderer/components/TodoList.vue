@@ -96,13 +96,18 @@ let TodoList = {
                         }
                     },
                     {
-                        text: 'Copy To Today',
+                        text: 'Move Incomplete Items To Today',
                         onClick: picker => {
                             const date = new Date();
                             let today = util.FormatDateTime(date)
                             if (today !== this.CurDate) {
-                                let copiedContent = JSON.parse(JSON.stringify(this.CurTabContent[this.CurDate]))
-                                Vue.set(this.CurTabContent, today, copiedContent)
+                                let splitedTodoItems = markdownParser.splitTodoItems(this.CurTabContent[this.CurDate])
+                                let incompleteTodoItems = JSON.parse(JSON.stringify(splitedTodoItems.incomplete))
+                                let completedTodoItems = JSON.parse(JSON.stringify(splitedTodoItems.complete))
+                                let currentTodayTodoItems = this.CurTabContent[today] || []
+                                let newTodayTodoItems = currentTodayTodoItems.concat(incompleteTodoItems)
+                                Vue.set(this.CurTabContent, this.CurDate, completedTodoItems)
+                                Vue.set(this.CurTabContent, today, newTodayTodoItems)
                                 SaveMarkdownFile()
                             }
                             picker.$emit('pick', date);
