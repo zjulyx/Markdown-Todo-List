@@ -13,8 +13,14 @@ Vue.use(Vuex)
 export default new Vuex.Store({
     state: {
         [constants.CurTab]: initSharedData[constants.CurTab],
-        [constants.CurId]: initSharedData[constants.CurId],
+        [constants.TabsData]: initSharedData[constants.TabsData],
+        [constants.Files]: initSharedData[constants.Files],
+        [constants.AccessToken]: initSharedData[constants.AccessToken],
+        [constants.AutoSync]: initSharedData[constants.AutoSync],
+        [constants.GistId]: initSharedData[constants.GistId],
         [constants.OnlyShowContentDate]: initSharedData[constants.OnlyShowContentDate],
+        [constants.CurId]: initSharedData[constants.CurId],
+        [constants.LoginDialogVisible]: false,
         [constants.FullHeight]: util.GetCurrentFullHeight(),
         [constants.FullWidth]: util.GetCurrentFullWidth()
     },

@@ -2,8 +2,6 @@
 
 import { app, BrowserWindow, Menu, ipcMain, nativeImage } from 'electron'
 import * as fileOperation from '../utils/fileOperation'
-import * as markdownParser from '../utils/markdownParser'
-import * as util from '../utils/util'
 import * as constants from '../model/constants'
 
 global.sharedData = {
@@ -47,7 +45,7 @@ function createWindow() {
     })
 }
 
-function createMenu(onlyShowContentDate) {
+function createMenu(onlyShowContentDate, autoSync) {
     let template = [
         {
             label: 'File',
@@ -61,14 +59,39 @@ function createMenu(onlyShowContentDate) {
         },
         {
             label: 'Option',
-            submenu: [{
-                label: 'Only show date containing todo items',
-                type: 'checkbox',
-                checked: onlyShowContentDate,
-                click(menuItem) {
-                    mainWindow.webContents.send(constants.ToggleSwitchChannel, menuItem)
+            submenu: [
+                {
+                    label: 'Only show date containing todo items',
+                    type: 'checkbox',
+                    id: constants.OnlyShowContentDate,
+                    checked: onlyShowContentDate,
+                    click(menuItem) {
+                        mainWindow.webContents.send(constants.ToggleSwitchChannel, menuItem)
+                    }
+                },
+                { type: 'separator' },
+                {
+                    label: 'Auto sync data',
+                    type: 'checkbox',
+                    id: constants.AutoSync,
+                    checked: autoSync,
+                    click(menuItem) {
+                        mainWindow.webContents.send(constants.ToggleSwitchChannel, menuItem)
+                    }
+                },
+                {
+                    label: 'Download data',
+                    click(menuItem) {
+                        mainWindow.webContents.send(constants.Download, menuItem)
+                    }
+                },
+                {
+                    label: 'Upload data',
+                    click(menuItem) {
+                        mainWindow.webContents.send(constants.Upload, menuItem)
+                    }
                 }
-            }]
+            ]
         }
     ]
     const menu = Menu.buildFromTemplate(template)
@@ -77,42 +100,9 @@ function createMenu(onlyShowContentDate) {
 
 app.on('ready', () => {
     createWindow()
-    fileOperation.LoadUserDataFile(constants.UserDataFile, userData => {
-        let files = userData[constants.Files]
-        let lastOpenedTab = parseInt(userData[constants.CurTab])
-        let lastOpenedTabName = files[lastOpenedTab]
-        let onlyShowContentDate = userData[constants.OnlyShowContentDate]
-        global.sharedData[constants.OnlyShowContentDate] = onlyShowContentDate
-        createMenu(onlyShowContentDate)
-        let count = 0
-        let tempFiles = []
-        let tempTabsData = []
-        let handleResult = function (file, index) {
-            return function (res, cancelled) {
-                if (!cancelled) {
-                    tempTabsData[index] = util.GenerateNewTabData(file, res)
-                    tempFiles[index] = file
-                }
-                if (++count === files.length) {
-                    global.sharedData[constants.CurId] = markdownParser.CurId
-                    global.sharedData[constants.TabsData] = util.RemoveNullElementFromArray(tempTabsData)
-                    global.sharedData[constants.Files] = util.RemoveNullElementFromArray(tempFiles)
-                    // find the lastOpenedTab index
-                    lastOpenedTab = global.sharedData[constants.Files].indexOf(lastOpenedTabName)
-                    if (isNaN(lastOpenedTab) || lastOpenedTab < 0 || lastOpenedTab >= files.length) {
-                        lastOpenedTab = 0
-                    }
-                    if (global.sharedData[constants.Files].length === 0) {
-                        lastOpenedTab = -1
-                    }
-                    lastOpenedTab = lastOpenedTab.toString()
-                    global.sharedData[constants.CurTab] = lastOpenedTab
-                }
-            }
-        }
-        files.forEach((file, index) => {
-            fileOperation.LoadMarkdownFile(file, handleResult(file, index))
-        })
+    fileOperation.LoadUserData(userData => {
+        global.sharedData = JSON.parse(JSON.stringify(userData))
+        createMenu(userData[constants.OnlyShowContentDate], userData[constants.AutoSync])
     })
 })
 

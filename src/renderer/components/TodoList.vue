@@ -28,15 +28,19 @@
                 </el-input>
             </el-tab-pane>
         </el-tabs>
+        <LoginDialog></LoginDialog>
     </div>
 </template>
 
 <script>
 import Vue from 'vue'
 import axios from 'axios'
+import LoginDialog from "./LoginDialog.vue";
+import _ from 'lodash'
 
 import * as constants from "../../model/constants";
 import * as fileOperation from "../../utils/fileOperation";
+import * as dataOperation from "../../utils/dataOperation";
 import * as markdownParser from "../../utils/markdownParser";
 import * as util from "../../utils/util";
 import * as vux from "../store/vuxOperation";
@@ -45,14 +49,13 @@ import * as packageConfig from "../../../package.json";
 import { ipcRenderer, remote } from 'electron'
 import { exec } from 'child_process'
 
-let initSharedData = JSON.parse(JSON.stringify(remote.getGlobal('sharedData')))
+// let initSharedData = JSON.parse(JSON.stringify(remote.getGlobal('sharedData')))
 
-let TodoList = {
+export default {
     name: "todo-list",
+    components: { LoginDialog },
     data() {
         return {
-            TabsData: initSharedData.TabsData,
-            Files: initSharedData.Files,
             MAXPROGRESS: constants.MAXPROGRESS,
             FilterDate: true,
             LeavedNode: null,
@@ -108,7 +111,7 @@ let TodoList = {
                                 let newTodayTodoItems = currentTodayTodoItems.concat(incompleteTodoItems)
                                 Vue.set(this.CurTabContent, this.CurDate, completedTodoItems)
                                 Vue.set(this.CurTabContent, today, newTodayTodoItems)
-                                SaveMarkdownFile()
+                                dataOperation.SaveMarkdownFile()
                             }
                             picker.$emit('pick', date);
                         }
@@ -162,6 +165,22 @@ let TodoList = {
                 return GetCurTab();
             }
         },
+        Files: {
+            get() {
+                return vux.GetVuxData(constants.Files)
+            },
+            set(newData) {
+                vux.SetVuxData(newData, constants.Files)
+            }
+        },
+        TabsData: {
+            get() {
+                return vux.GetVuxData(constants.TabsData)
+            },
+            set(newData) {
+                vux.SetVuxData(newData, constants.TabsData)
+            }
+        },
         FilterText: {
             set(newData) {
                 this.CurTabData.FilterText = newData
@@ -183,7 +202,11 @@ let TodoList = {
     mounted() {
         this.updateCheckStatusAtFirst(this.CurDate)
         this.checkVersion()
-        SaveUserDataFile()
+        dataOperation.SaveUserDataFile()
+        if (vux.GetVuxData(constants.AutoSync)) {
+            // first download lastest data from remote
+            dataOperation.downloadGist()
+        }
     },
     methods: {
         checkVersion() {
@@ -244,7 +267,7 @@ let TodoList = {
         titleEdited(newTitle) {
             this.CurTabData.TitleNotEditing = true
             this.CurTabContent.Title = newTitle
-            SaveMarkdownFile()
+            dataOperation.SaveMarkdownFile()
         },
         handleTabsEdit(targetName, action) {
             if (action === 'add') {
@@ -256,7 +279,7 @@ let TodoList = {
                 if (this.CurTab >= this.TabsData.length - 1) {
                     SetCurTab((this.TabsData.length - 1).toString())
                 }
-                SaveUserDataFile()
+                dataOperation.SaveUserDataFile()
             }
         },
         filterNode(value, data) {
@@ -276,7 +299,7 @@ let TodoList = {
                 }
             } else {
                 Vue.set(this.CurTabContent, thisDate, [])
-                SaveMarkdownFile()
+                dataOperation.SaveMarkdownFile()
             }
         },
         handleCheckChange(data, checked, subchecked) {
@@ -307,7 +330,7 @@ let TodoList = {
             if (parent) {
                 this.updateProgress(CalNodeProgress(parent), parent)
             } else {
-                SaveMarkdownFile()
+                dataOperation.SaveMarkdownFile()
             }
         },
         showProgress(val) {
@@ -334,12 +357,10 @@ let TodoList = {
             }
             newval = newval.trim()
             data.label = newval
-            SaveMarkdownFile()
+            dataOperation.SaveMarkdownFile()
         }
     }
-};
-
-export default TodoList;
+}
 
 function GenerateInitData(label) {
     return { id: markdownParser.IncreaseCurId(), label: label, progress: 0, finished: false, children: [] }
@@ -373,32 +394,13 @@ function UpdateCheckStatus(node) {
     }
 }
 
-function SaveMarkdownFile() {
-    let curTab = GetCurTab()
-    let tabsData = TodoList.data().TabsData
-    let filename = tabsData[curTab].FileName
-    let content = tabsData[curTab].Content
-    fileOperation.SaveMarkdownFile(filename, content)
-}
-
-function SaveUserDataFile() {
-    let files = TodoList.data().Files
-    let curTab = GetCurTab()
-    let onlyShowContentDate = GetOnlyShowContentDate()
-    fileOperation.SaveUserDataFile(constants.UserDataFile, {
-        Files: files,
-        CurTab: curTab,
-        OnlyShowContentDate: onlyShowContentDate
-    })
-}
-
 function GetCurTab() {
     return vux.GetVuxData(constants.CurTab)
 }
 
 function SetCurTab(newData) {
     vux.SetVuxData(newData, constants.CurTab)
-    SaveUserDataFile()
+    dataOperation.SaveUserDataFile()
 }
 
 function GetOnlyShowContentDate() {
@@ -407,7 +409,12 @@ function GetOnlyShowContentDate() {
 
 function SetOnlyShowContentDate(newData) {
     vux.SetVuxData(newData, constants.OnlyShowContentDate)
-    SaveUserDataFile()
+    dataOperation.SaveUserDataFile()
+}
+
+function SetAutoSync(newData) {
+    vux.SetVuxData(newData, constants.AutoSync)
+    dataOperation.SaveUserDataFile()
 }
 
 function FilterDuplicateFiles(currentFiles, newFiles, findDupCallback) {
@@ -424,8 +431,8 @@ function FilterDuplicateFiles(currentFiles, newFiles, findDupCallback) {
 }
 
 ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
-    let tempTabsData = TodoList.data().TabsData
-    let tempFiles = TodoList.data().Files
+    let tempTabsData = vux.GetVuxData(constants.TabsData)
+    let tempFiles = vux.GetVuxData(constants.Files)
     let originLength = tempTabsData.length
     let originFileLength = tempFiles.length
     let count = 0
@@ -451,13 +458,37 @@ ipcRenderer.on(constants.FileOpenedChannel, (evt, Files) => {
 })
 
 ipcRenderer.on(constants.ToggleSwitchChannel, (evt, menuItem) => {
-    SetOnlyShowContentDate(menuItem.checked)
+    switch (menuItem.id) {
+        case constants.OnlyShowContentDate:
+            // set date display option
+            SetOnlyShowContentDate(menuItem.checked)
+            break;
+        case constants.AutoSync:
+            // set auto sync option
+            // todo
+            SetAutoSync(menuItem.checked)
+            // AutoSync()
+            // console.log("todo")
+            break;
+        default:
+            break;
+    }
 })
 
-remote.getCurrentWindow().on('resize', _ => {
+ipcRenderer.on(constants.Upload, (evt, menuItem) => {
+    console.log(menuItem)
+    dataOperation.uploadGist()
+})
+
+ipcRenderer.on(constants.Download, (evt, menuItem) => {
+    console.log(menuItem)
+    dataOperation.downloadGist()
+})
+
+remote.getCurrentWindow().on('resize', _.debounce(() => {
     vux.SetVuxData(util.GetCurrentFullHeight(), constants.FullHeight)
     vux.SetVuxData(util.GetCurrentFullWidth(), constants.FullWidth)
-})
+}, 100))
 </script>
 
 <style>

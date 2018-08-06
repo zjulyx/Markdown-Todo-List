@@ -62,41 +62,71 @@ export function LoadMarkdownFile(markdownFile, callback) {
     })
 }
 
-export function LoadUserDataFile(userDataFile, callback) {
-    fs.readFile(userDataFile, 'utf-8', (err, res) => {
+export function LoadUserData(callback) {
+    fs.readFile(constants.UserDataFile, 'utf-8', (err, res) => {
         try {
             if (err) throw new Error(err);
+            let userData = JSON.parse(res)
+            let files = userData[constants.Files]
+            let lastOpenedTab = parseInt(userData[constants.CurTab])
+            let lastOpenedTabName = files[lastOpenedTab]
+            let count = 0
+            let tempFiles = []
+            let tempTabsData = []
+            let handleResult = function (file, index) {
+                return function (res, cancelled) {
+                    if (!cancelled) {
+                        tempTabsData[index] = util.GenerateNewTabData(file, res)
+                        tempFiles[index] = file
+                    }
+                    if (++count === files.length) {
+                        userData[constants.CurId] = markdownParser.CurId
+                        userData[constants.TabsData] = util.RemoveNullElementFromArray(tempTabsData)
+                        userData[constants.Files] = util.RemoveNullElementFromArray(tempFiles)
+                        // find the lastOpenedTab index
+                        lastOpenedTab = userData[constants.Files].indexOf(lastOpenedTabName)
+                        if (isNaN(lastOpenedTab) || lastOpenedTab < 0 || lastOpenedTab >= files.length) {
+                            lastOpenedTab = 0
+                        }
+                        if (userData[constants.Files].length === 0) {
+                            lastOpenedTab = -1
+                        }
+                        lastOpenedTab = lastOpenedTab.toString()
+                        userData[constants.CurTab] = lastOpenedTab
+                        callback(userData)
+                    }
+                }
+            }
+            files.forEach((file, index) => {
+                LoadMarkdownFile(file, handleResult(file, index))
+            })
             callback(JSON.parse(res))
         } catch (ex) {
             handleFileNotExist(
-                userDataFile,
+                constants.UserDataFile,
                 callback,
-                {
-                    [constants.Files]: [],
-                    [constants.CurTab]: '0',
-                    [constants.OnlyShowContentDate]: true
-                }
+                constants.InitSettings
             )
         }
     })
 }
 
-export function SaveMarkdownFile(markdownFile, obj, callback) {
-    fs.writeFile(markdownFile, markdownParser.convertObjToMarkDown(obj, markdownFile), err => {
-        if (err) {
-            util.ShowError(`${err} in SaveMarkdownFile!`)
-        }
+// export function SaveMarkdownFile(markdownFile, obj, callback) {
+//     fs.writeFile(markdownFile, markdownParser.convertObjToMarkDown(obj, markdownFile), err => {
+//         if (err) {
+//             util.ShowError(`${err} in SaveMarkdownFile!`)
+//         }
 
-        if (callback) {
-            callback();
-        }
-    })
-}
+//         if (callback) {
+//             callback();
+//         }
+//     })
+// }
 
-export function SaveUserDataFile(userDataFile, obj) {
-    fs.writeFile(userDataFile, JSON.stringify(obj), err => {
-        if (err) {
-            util.ShowError(`${err} in SaveUserDataFile!`)
-        }
-    })
-}
+// export function SaveUserDataFile(userDataFile, str) {
+//     fs.writeFile(userDataFile, str, err => {
+//         if (err) {
+//             util.ShowError(`${err} in SaveUserDataFile!`)
+//         }
+//     })
+// }
