@@ -4,7 +4,7 @@ export const MainProcess = 'browser'
 export const RendererProcess = 'renderer'
 export const MAXPROGRESS = 4
 export const UserDataFileName = 'UserData.json'
-export const UserDataFile = path.join(process.env.APPDATA, 'MarkdownTodoList', UserDataFileName)
+export const UserDataFile = path.join(process.env.APPDATA || process.env.HOME, 'MarkdownTodoList', UserDataFileName)
 
 export const FullHeight = 'FullHeight'
 export const FullWidth = 'FullWidth'

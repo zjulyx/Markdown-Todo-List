@@ -1,13 +1,20 @@
 import fs from 'fs'
 import path from 'path'
-import { dialog } from 'electron'
+import {
+    dialog
+} from 'electron'
 import * as markdownParser from './markdownParser'
 import * as util from './util'
 import * as constants from '../model/constants';
 
-const fileDialogFilters = [
-    { name: 'Markdown Files', extensions: ['md'] },
-    { name: 'All Files', extensions: ['*'] }
+const fileDialogFilters = [{
+        name: 'Markdown Files',
+        extensions: ['md']
+    },
+    {
+        name: 'All Files',
+        extensions: ['*']
+    }
 ]
 
 function mkdirs(dirname, callback) {
@@ -69,6 +76,8 @@ export function LoadUserData(callback) {
             let userData = JSON.parse(res)
             let files = userData[constants.Files]
             let lastOpenedTab = parseInt(userData[constants.CurTab])
+            userData[constants.TabsData] = []
+            userData[constants.CurId] = 0
             let lastOpenedTabName = files[lastOpenedTab]
             let count = 0
             let tempFiles = []
@@ -100,7 +109,7 @@ export function LoadUserData(callback) {
             files.forEach((file, index) => {
                 LoadMarkdownFile(file, handleResult(file, index))
             })
-            callback(JSON.parse(res))
+            callback(userData)
         } catch (ex) {
             handleFileNotExist(
                 constants.UserDataFile,

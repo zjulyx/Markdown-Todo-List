@@ -1,6 +1,12 @@
 'use strict'
 
-import { app, BrowserWindow, Menu, ipcMain, nativeImage } from 'electron'
+import {
+    app,
+    BrowserWindow,
+    Menu,
+    ipcMain,
+    nativeImage
+} from 'electron'
 import * as fileOperation from '../utils/fileOperation'
 import * as constants from '../model/constants'
 
@@ -22,9 +28,8 @@ if (process.env.NODE_ENV !== 'development') {
     global.__static = require('path').join(__dirname, '/static').replace(/\\/g, '\\\\')
 }
 
-const winURL = process.env.NODE_ENV === 'development'
-    ? `http://localhost:9080`
-    : `file://${__dirname}/index.html`
+const winURL =
+    (process.env.NODE_ENV === 'development' ? `http://localhost:9080` : `file://${__dirname}/index.html`)
 
 function createWindow() {
     /**
@@ -38,7 +43,9 @@ function createWindow() {
 
     mainWindow.loadURL(winURL)
 
-    mainWindow.setIcon(nativeImage.createFromPath('build/icons/icon.png'))
+    if (process.platform !== 'darwin') {
+        mainWindow.setIcon(nativeImage.createFromPath('build/icons/icon.png'))
+    }
 
     mainWindow.on('closed', () => {
         mainWindow = null
@@ -46,8 +53,7 @@ function createWindow() {
 }
 
 function createMenu(onlyShowContentDate, autoSync) {
-    let template = [
-        {
+    let template = [{
             label: 'File',
             submenu: [{
                 label: 'Open Todo List File',
@@ -59,8 +65,7 @@ function createMenu(onlyShowContentDate, autoSync) {
         },
         {
             label: 'Option',
-            submenu: [
-                {
+            submenu: [{
                     label: 'Only show date containing todo items',
                     type: 'checkbox',
                     id: constants.OnlyShowContentDate,
@@ -69,7 +74,9 @@ function createMenu(onlyShowContentDate, autoSync) {
                         mainWindow.webContents.send(constants.ToggleSwitchChannel, menuItem)
                     }
                 },
-                { type: 'separator' },
+                {
+                    type: 'separator'
+                },
                 {
                     label: 'Auto sync data',
                     type: 'checkbox',

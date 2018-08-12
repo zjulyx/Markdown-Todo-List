@@ -1,6 +1,6 @@
 {
     "name": "markdowntodolist",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "author": "Yanxiao Liang <liangyanxiao@yeah.net>",
     "description": "Todo List, use markdown format for cross-platform usage & display",
     "license": "MIT",
@@ -36,8 +36,7 @@
             "build/icons/**/*"
         ],
         "dmg": {
-            "contents": [
-                {
+            "contents": [{
                     "x": 410,
                     "y": 150,
                     "type": "link",
@@ -55,15 +54,13 @@
         },
         "win": {
             "icon": "build/icons/icon.png",
-            "target": [
-                {
-                    "target": "nsis",
-                    "arch": [
-                        "x64",
-                        "ia32"
-                    ]
-                }
-            ]
+            "target": [{
+                "target": "nsis",
+                "arch": [
+                    "x64",
+                    "ia32"
+                ]
+            }]
         },
         "nsis": {
             "oneClick": false,
